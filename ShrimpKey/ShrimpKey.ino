@@ -37,7 +37,7 @@
 ////////////////////////
 
 #define BUFFER_LENGTH    3     // 3 bytes gives us 24 samples
-#define NUM_INPUTS       14   // skipping pin 5 as usbConnect and pin 13 as LED
+#define NUM_INPUTS       1     // skipping pin 5 as usbConnect and pin 13 as LED
 //#define TARGET_LOOP_TIME 694   // (1/60 seconds) / 24 samples = 694 microseconds per sample 
 //#define TARGET_LOOP_TIME 758  // (1/55 seconds) / 24 samples = 758 microseconds per sample 
 #define TARGET_LOOP_TIME 744  // (1/56 seconds) / 24 samples = 744 microseconds per sample 
@@ -72,17 +72,18 @@ boolean inputChanged;
 
 // Pin Numbers
 
+/*
 int pinNumbers[NUM_INPUTS] = {
   3,6,7,8,9,10,11,12, //TODO CH - fix possible conflict with usbConnect logic on pin 5
   A0,A1,A2,A3,A4,A5
 };
+*/
 
 //TODO CH indicate that this should be used for testing
-/*
 int pinNumbers[NUM_INPUTS] = {
   9
 };
-*/
+
 const int ledPin = 13;
 
 // timing

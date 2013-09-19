@@ -6,6 +6,7 @@
 
 //TODO CH some introduction to how to edit these values
 
+/*
 int keyCodes[NUM_INPUTS] = {
   KEY_1,
   KEY_2,
@@ -22,14 +23,13 @@ int keyCodes[NUM_INPUTS] = {
   KEY_C,
   KEY_D
 };
+*/
 
 //TODO CH indicate how this is preferred for testing
 //possibly set as default ?
-/*
 int keyCodes[NUM_INPUTS] = {
   KEY_1
 };
-*/
 
 ///////////////////////////
 // NOISE CANCELLATION /////
