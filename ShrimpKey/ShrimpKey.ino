@@ -26,10 +26,11 @@
 // DEBUG DEFINITIONS ////               
 /////////////////////////
 //#define DEBUG
-//#define DEBUG2 
-//#define DEBUG3 
+#ifdef DEBUG
+//#define DEBUG_CHANGE
 //#define DEBUG_TIMING
-//#define DEBUG_TIMING2
+#endif
+
 
 ////////////////////////
 // DEFINED CONSTANTS////
@@ -166,8 +167,8 @@ void initializeArduino() {
 
   pinMode(ledPin, OUTPUT);
 
-#ifdef DEBUG2
-  delay(4000); // allow us time to reprogram in case things are freaking out
+#ifdef DEBUG
+  delayMs(4000); // allow us time to reprogram in case things are freaking out
 #endif
 }
 
@@ -287,7 +288,7 @@ void updateInputStates() {
         }
       }
     }
-#ifdef DEBUG3
+#ifdef DEBUG_CHANGE
   if (inputChanged) {
     Serial.println("change");
   }
@@ -327,8 +328,3 @@ void addDelay() {
 #endif
 
 }
-
-
-
-
-
