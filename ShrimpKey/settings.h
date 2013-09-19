@@ -20,9 +20,7 @@ int keyCodes[NUM_INPUTS] = {
   KEY_A,
   KEY_B,
   KEY_C,
-  KEY_D,
-  KEY_E,
-  KEY_F
+  KEY_D
 };
 
 //TODO CH indicate how this is preferred for testing
