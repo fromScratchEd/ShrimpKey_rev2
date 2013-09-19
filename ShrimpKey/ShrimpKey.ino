@@ -309,40 +309,32 @@ void updateInputStates() {
       if (inputs[i].bufferSum < releaseThreshold) {
         inputChanged = true;
         inputs[i].pressed = false;
-        UsbKeyboard.releaseKeyStroke();
-        keysPressed = 0;        
-      }
-    if (lastKeyPressed != i) {
-      inputs[lastKeyPressed].pressed = false;
-      keysPressed = 0;
-      inputChanged = false;
-      UsbKeyboard.releaseKeyStroke();
+        releaseKey(inputs[i].keyCode);
     } 
     }
     else if (!inputs[i].pressed) {
       if (inputs[i].bufferSum > pressThreshold) {  // input becomes pressed
         inputChanged = true;
         inputs[i].pressed = true;
-        if (lastKeyPressed != i) {
-          keysPressed += 1;
-          inputs[lastKeyPressed].pressed = false;
-          UsbKeyboard.sendKeyStroke(keyCodes[i]);
-          lastKeyPressed = i;
+        pressKey(inputs[i].keyCode);
         }
       }
     }
-    if (keysPressed == 0) {
-      if (inputs[i].pressed) {
-        inputs[i].pressed = false;
-        lastKeyPressed = -1;
-      }
-    }
- }
 #ifdef DEBUG3
   if (inputChanged) {
     Serial.println("change");
   }
 #endif
+}
+
+void pressKey(byte keyCode){
+  byte modifiers = 0;
+  UsbKeyboard.keyDown(keyCode);
+}
+
+void releaseKey(byte keyCode){
+  //CH note this currently ignores the key value - probably sends equivalent to "all keys up"
+  UsbKeyboard.keyUp(keyCode);
 }
 
 ///////////////////////////
