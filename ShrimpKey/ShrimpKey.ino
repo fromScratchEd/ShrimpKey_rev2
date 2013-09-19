@@ -82,15 +82,7 @@ int pinNumbers[NUM_INPUTS] = {
   9
 };
 */
-// input status LED pin numbers
-const int inputLED_a = 12;
-const int inputLED_b = 10;
-const int inputLED_c = 11;
-const int outputK = 13;
-const int outputM = 16;
-byte ledCycleCounter = 0;
-
-const int ledPin = 12;
+const int ledPin = 13;
 
 // timing
 int loopTime = 0;
@@ -107,9 +99,6 @@ void updateBufferSums();
 void updateBufferIndex();
 void updateInputStates();
 void addDelay();
-void danceLeds();
-void updateOutLEDs();
-
 
 //////////////////////
 // SETUP /////////////
@@ -133,7 +122,6 @@ void setup()
   
   initializeArduino();
   initializeInputs();
-  danceLeds();
 }
 
 ////////////////////
@@ -145,7 +133,6 @@ void loop()
   updateBufferSums();
   updateBufferIndex();
   updateInputStates();
-  updateOutLEDs();
   addDelay();
 }
 
@@ -177,10 +164,7 @@ void initializeArduino() {
     digitalWrite(pinNumbers[i], LOW);
   }
 
-  pinMode(outputK, OUTPUT);
   pinMode(ledPin, OUTPUT);
-  digitalWrite(outputK, LOW);
-  digitalWrite(ledPin, LOW);
 
 #ifdef DEBUG2
   delay(4000); // allow us time to reprogram in case things are freaking out
@@ -343,36 +327,6 @@ void addDelay() {
 #endif
 
 }
-
-///////////////////////////
-// DANCE LEDS
-///////////////////////////
-void danceLeds() {
-  pinMode(ledPin, OUTPUT);
-  digitalWrite(ledPin, HIGH);
-  delayMs(250);
-  pinMode(outputK, OUTPUT);
-  digitalWrite(outputK, HIGH);
-  digitalWrite(ledPin, LOW);
-  delayMs(150);
-  digitalWrite(outputK, LOW);
-}
-
-///////////////////////////
-// update OutLEDs
-///////////////////////////
-void updateOutLEDs()
-{
-  if (keyPressed)
-  {
-    digitalWrite(ledPin, HIGH);
-  }
-  else
-  {
-    digitalWrite(ledPin, LOW);
-  }
-}
-
 
 
 
