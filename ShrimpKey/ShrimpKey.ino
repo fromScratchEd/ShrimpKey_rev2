@@ -53,8 +53,6 @@ typedef struct {
   boolean oldestMeasurement;
   byte bufferSum;
   boolean pressed;
-  boolean prevPressed;
-  boolean isKey;
 } 
 
 ShrimpKeyInput;
@@ -70,8 +68,6 @@ byte bitCounter = 0;
 int pressThreshold;
 int releaseThreshold;
 boolean inputChanged;
-int lastKeyPressed = -1;
-int keysPressed = 0;
 
 // Pin Numbers
 
@@ -100,9 +96,6 @@ const int ledPin = 12;
 int loopTime = 0;
 int prevTime = 0;
 int loopCounter = 0;
-
-boolean keyPressed = 0;
-  
   
 ///////////////////////////
 // FUNCTIONS //////////////
@@ -174,7 +167,6 @@ void delayMs(unsigned int ms)
 void initializeArduino() {
 #ifdef DEBUG
   Serial.begin(9600);  // Serial for debugging
-  Serial.println(111);
 #endif
 
   /* Set up input pins 
@@ -222,16 +214,6 @@ void initializeInputs() {
     inputs[i].oldestMeasurement = 0;
     inputs[i].bufferSum = 0;
 
-    inputs[i].pressed = false;
-    inputs[i].prevPressed = false;
-
-    inputs[i].isKey = false;
-
-    if (inputs[i].keyCode < 0) {
-    } 
-    else {
-      inputs[i].isKey = true;
-    }
 #ifdef DEBUG
     Serial.println(i);
 #endif
