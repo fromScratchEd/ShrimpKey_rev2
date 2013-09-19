@@ -276,7 +276,7 @@ section at the end of this file).
 #define USB_CFG_HID_REPORT_DESCRIPTOR_LENGTH    35
 /* Define this to the length of the HID report descriptor, if you implement
  * an HID device. Otherwise don't define it or define it to 0.
- * If you use this define, you must add a PROGMEM character array named
+ * If you use this define, you must add a const PROGMEM character array named
  * "usbHidReportDescriptor" to your code which contains the report descriptor.
  * Don't forget to keep the array and this define in sync!
  */
@@ -304,7 +304,7 @@ section at the end of this file).
  *   + USB_PROP_LENGTH(len): If the data is in static memory (RAM or flash),
  *     the driver must know the descriptor's length. The descriptor itself is
  *     found at the address of a well known identifier (see below).
- * List of static descriptor names (must be declared PROGMEM if in flash):
+ * List of static descriptor names (must be declared const PROGMEM if in flash):
  *   char usbDescriptorDevice[];
  *   char usbDescriptorConfiguration[];
  *   char usbDescriptorHidReport[];
