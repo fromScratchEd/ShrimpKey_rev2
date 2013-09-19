@@ -86,8 +86,8 @@ int pinNumbers[NUM_INPUTS] = {
 const int ledPin = 13;
 
 // timing
-int loopTime = 0;
-int prevTime = 0;
+unsigned long loopTime = 0;
+unsigned long prevTime = 0;
 int loopCounter = 0;
   
 ///////////////////////////
@@ -130,6 +130,7 @@ void setup()
 ////////////////////
 void loop() 
 {
+  updateUsb();
   updateMeasurementBuffers();
   updateBufferSums();
   updateBufferIndex();
@@ -205,6 +206,11 @@ void initializeInputs() {
   }
 }
 
+void updateUsb(){
+  UsbKeyboard.update();
+}
+
+
 //////////////////////////////
 // UPDATE MEASUREMENT BUFFERS
 //////////////////////////////
@@ -270,7 +276,6 @@ void updateBufferIndex() {
 // UPDATE INPUT STATES
 ///////////////////////////
 void updateInputStates() {
-  UsbKeyboard.update();
   inputChanged = false;
   for (int i=0; i<NUM_INPUTS; i++) {
     if (inputs[i].pressed) {
@@ -310,10 +315,11 @@ void releaseKey(byte keyCode){
 ///////////////////////////
 void addDelay() {
 
-  loopTime = micros() - prevTime;
-  if (loopTime < TARGET_LOOP_TIME) {
-    int wait = TARGET_LOOP_TIME - loopTime;
-    delayMicroseconds(wait);
+  unsigned long targetMoment = prevTime + loopTime;
+  if(targetMoment > prevTime){ //handle micros() overflow condition
+    while(micros() < targetMoment){
+	  updateUsb();
+    }
   }
 
   prevTime = micros();
