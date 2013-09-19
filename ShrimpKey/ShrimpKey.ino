@@ -1,3 +1,5 @@
+#include <UsbKeyboard.h>
+
 /*
  ************************************************
  **************** ShrimpKey *********************
@@ -10,16 +12,14 @@
  - that file should be open in a tab above (in Arduino IDE)
  
  ////////////////////////////////////////////////
- /////////// ShrimpKey FIRMWARE v1.0.0 //////////
+ /////////// ShrimpKey FIRMWARE /////////////////
  ////////////////////////////////////////////////
  by Sjoerd Dirk Meijer, info@scratched.eu
- Derived from MakeyMakey Firmware v.1.4.1 and
- www.practicalarduino.com/projects/virtual-usb-keyboard
- This work is licensed under the Creative Commons
- Attribution-NonCommercial-ShareAlike 3.0 Unported License
- (unless licensed otherwise).
- To view a copy of this license, visit
- www.creativecommons.org/licenses/by-nc-sa/3.0/
+ and Cefn Hoile, shrimping.it@cefn.com
+ Derived from MakeyMakey Firmware v.1.4.1
+ by Eric Rosenbaum, Jay Silver, and Jim Lindblom
+ and the vusb-for-arduino UsbKeyboard demo
+ http://www.practicalarduino.com/projects/virtual-usb-keyboard
  */
 
 /////////////////////////
@@ -31,18 +31,12 @@
 //#define DEBUG_TIMING
 //#define DEBUG_TIMING2
 
-#include <UsbKeyboard.h>
-#include <oddebug.h>
-#include <usbconfig.h>
-#include <usbdrv.h>
-#include <usbportability.h>
-
 ////////////////////////
 // DEFINED CONSTANTS////
 ////////////////////////
 
 #define BUFFER_LENGTH    3     // 3 bytes gives us 24 samples
-#define NUM_INPUTS       9    // 6 on the front + 12 on the back
+#define NUM_INPUTS       14   // skipping pin 5 as usbConnect and pin 13 as LED
 //#define TARGET_LOOP_TIME 694   // (1/60 seconds) / 24 samples = 694 microseconds per sample 
 //#define TARGET_LOOP_TIME 758  // (1/55 seconds) / 24 samples = 758 microseconds per sample 
 #define TARGET_LOOP_TIME 744  // (1/56 seconds) / 24 samples = 744 microseconds per sample 
@@ -80,11 +74,18 @@ int lastKeyPressed = -1;
 int keysPressed = 0;
 
 // Pin Numbers
+
 int pinNumbers[NUM_INPUTS] = {
-4, 5, 6, 8,
-9, 11, A0, A2, A5
+  3,6,7,8,9,10,11,12, //TODO CH - fix possible conflict with usbConnect logic on pin 5
+  A0,A1,A2,A3,A4,A5
 };
 
+//TODO CH indicate that this should be used for testing
+/*
+int pinNumbers[NUM_INPUTS] = {
+  9
+};
+*/
 // input status LED pin numbers
 const int inputLED_a = 12;
 const int inputLED_b = 10;
