@@ -47,12 +47,12 @@ Thanks to Oleg Semyonov for his help with the IAR tools port!
 #endif
 
 #ifdef __HAS_ELPM__
-#   define PROGMEM __farflash
+#   define const PROGMEM __farflash
 #else
-#   define PROGMEM __flash
+#   define const PROGMEM __flash
 #endif
 
-#define USB_READ_FLASH(addr)    (*(PROGMEM char *)(addr))
+#define USB_READ_FLASH(addr)    (*(const PROGMEM char *)(addr))
 
 /* The following definitions are not needed by the driver, but may be of some
  * help if you port a gcc based project to IAR.
@@ -93,8 +93,8 @@ Thanks to Oleg Semyonov for his help with the IAR tools port!
 
 #define __attribute__(arg)  /* not supported on IAR */
 
-#define PROGMEM                 __flash
-#define USB_READ_FLASH(addr)    (*(PROGMEM char *)(addr))
+#define const PROGMEM                 __flash
+#define USB_READ_FLASH(addr)    (*(const PROGMEM char *)(addr))
 
 #ifndef __ASSEMBLER__
 static inline void  cli(void)

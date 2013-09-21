@@ -18,7 +18,8 @@
 
 typedef uint8_t byte;
 
-
+//TODO CH, experiment whether we can ramp this up to 
+//support all 16 pressed at once?
 #define BUFFER_SIZE 4 // Minimum of 2: 1 for modifiers + 1 for keystroke 
 
 
@@ -33,7 +34,7 @@ static uchar    idleRate;           // in 4 ms units
  * Redundant entries (such as LOGICAL_MINIMUM and USAGE_PAGE) have been omitted
  * for the second INPUT item.
  */
-PROGMEM char usbHidReportDescriptor[35] = { /* USB report descriptor */
+const PROGMEM char usbHidReportDescriptor[35] = { /* USB report descriptor */
   0x05, 0x01,                    // USAGE_PAGE (Generic Desktop) 
   0x09, 0x06,                    // USAGE (Keyboard) 
   0xa1, 0x01,                    // COLLECTION (Application) 
@@ -152,11 +153,23 @@ class UsbKeyboardDevice {
     usbPoll();
   }
     
-  void sendKeyStroke(byte keyStroke) {
-    sendKeyStroke(keyStroke, 0);
+  //CH TODO, this actually sends an update that this single key is the only one down
+  //should be reimplemented to support the sending of simultaneous keys (e.g. track
+  //the keyDowns and keyUps by keycode, then send a report containing the modifiers,
+  //then a series of keycodes (with a report of a varying length I think, allowing 
+  //BUFFER-1 simultaneous keys)
+  void keyDown(byte keyCode) {
+      sendKeys(keyCode, 0);
   }
 
-  void sendKeyStroke(byte keyStroke, byte modifiers) {
+  //CH TODO, this actually sends an update that all keys are up
+  void keyUp(byte keyCode){
+	  sendKeys(0,0);
+  }
+  
+  //TODO CH, currently only sends one key, should change to 
+  //send multiple
+  void sendKeys(byte keyCode, byte modifiers){
       
     while (!usbInterruptIsReady()) {
       // Note: We wait until we can send keystroke
@@ -167,27 +180,13 @@ class UsbKeyboardDevice {
     memset(reportBuffer, 0, sizeof(reportBuffer));
 
     reportBuffer[0] = modifiers;
-    reportBuffer[1] = keyStroke;
-        
-    usbSetInterrupt(reportBuffer, sizeof(reportBuffer));
+    reportBuffer[1] = keyCode;
+    /* //CH uncommenting this code proves that the routine can send simultaneous keys
+    if(keyCode != 0){
+		reportBuffer[2] = KEY_2;		
+    }
+	* */
 
-    //while (!usbInterruptIsReady()) {
-      // Note: We wait until we can send keystroke
-      //       so we know the previous keystroke was
-      //       sent.
-    //}
-      
-    //// This stops endlessly repeating keystrokes:
-    //// SDM: Moved to releaseKeyStroke
-    //memset(reportBuffer, 0, sizeof(reportBuffer));  //wat, vervangen door, hoeveel keer     
-    //usbSetInterrupt(reportBuffer, sizeof(reportBuffer));
-
-  }
-
-  void releaseKeyStroke() {
-	while (!usbInterruptIsReady()) {
-	}
-    memset(reportBuffer, 0, sizeof(reportBuffer));
     usbSetInterrupt(reportBuffer, sizeof(reportBuffer));
   }
   
