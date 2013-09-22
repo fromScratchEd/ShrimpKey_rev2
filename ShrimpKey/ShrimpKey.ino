@@ -1,3 +1,5 @@
+#include <UsbKeyboard.h>
+
 /*
  ************************************************
  **************** ShrimpKey *********************
@@ -10,39 +12,32 @@
  - that file should be open in a tab above (in Arduino IDE)
  
  ////////////////////////////////////////////////
- /////////// ShrimpKey FIRMWARE v1.0.0 //////////
+ /////////// ShrimpKey FIRMWARE /////////////////
  ////////////////////////////////////////////////
  by Sjoerd Dirk Meijer, info@scratched.eu
- Derived from MakeyMakey Firmware v.1.4.1 and
- www.practicalarduino.com/projects/virtual-usb-keyboard
- This work is licensed under the Creative Commons
- Attribution-NonCommercial-ShareAlike 3.0 Unported License
- (unless licensed otherwise).
- To view a copy of this license, visit
- www.creativecommons.org/licenses/by-nc-sa/3.0/
+ and Cefn Hoile, shrimping.it@cefn.com
+ Derived from MakeyMakey Firmware v.1.4.1
+ by Eric Rosenbaum, Jay Silver, and Jim Lindblom
+ and the vusb-for-arduino UsbKeyboard demo
+ http://www.practicalarduino.com/projects/virtual-usb-keyboard
  */
 
 /////////////////////////
 // DEBUG DEFINITIONS ////               
 /////////////////////////
 //#define DEBUG
-//#define DEBUG2 
-//#define DEBUG3 
+#ifdef DEBUG
+//#define DEBUG_CHANGE
 //#define DEBUG_TIMING
-//#define DEBUG_TIMING2
+#endif
 
-#include <UsbKeyboard.h>
-#include <oddebug.h>
-#include <usbconfig.h>
-#include <usbdrv.h>
-#include <usbportability.h>
 
 ////////////////////////
 // DEFINED CONSTANTS////
 ////////////////////////
 
 #define BUFFER_LENGTH    3     // 3 bytes gives us 24 samples
-#define NUM_INPUTS       9    // 6 on the front + 12 on the back
+#define NUM_INPUTS       1     // skipping pin 5 as usbConnect and pin 13 as LED
 //#define TARGET_LOOP_TIME 694   // (1/60 seconds) / 24 samples = 694 microseconds per sample 
 //#define TARGET_LOOP_TIME 758  // (1/55 seconds) / 24 samples = 758 microseconds per sample 
 #define TARGET_LOOP_TIME 744  // (1/56 seconds) / 24 samples = 744 microseconds per sample 
@@ -59,8 +54,6 @@ typedef struct {
   boolean oldestMeasurement;
   byte bufferSum;
   boolean pressed;
-  boolean prevPressed;
-  boolean isKey;
 } 
 
 ShrimpKeyInput;
@@ -76,32 +69,27 @@ byte bitCounter = 0;
 int pressThreshold;
 int releaseThreshold;
 boolean inputChanged;
-int lastKeyPressed = -1;
-int keysPressed = 0;
 
 // Pin Numbers
+
+/*
 int pinNumbers[NUM_INPUTS] = {
-4, 5, 6, 8,
-9, 11, A0, A2, A5
+  3,6,7,8,9,10,11,12, //TODO CH - fix possible conflict with usbConnect logic on pin 5
+  A0,A1,A2,A3,A4,A5
+};
+*/
+
+//TODO CH indicate that this should be used for testing
+int pinNumbers[NUM_INPUTS] = {
+  9
 };
 
-// input status LED pin numbers
-const int inputLED_a = 12;
-const int inputLED_b = 10;
-const int inputLED_c = 11;
-const int outputK = 13;
-const int outputM = 16;
-byte ledCycleCounter = 0;
-
-const int ledPin = 12;
+const int ledPin = 13;
 
 // timing
-int loopTime = 0;
-int prevTime = 0;
+unsigned long loopTime = 0;
+unsigned long prevTime = 0;
 int loopCounter = 0;
-
-boolean keyPressed = 0;
-  
   
 ///////////////////////////
 // FUNCTIONS //////////////
@@ -113,9 +101,6 @@ void updateBufferSums();
 void updateBufferIndex();
 void updateInputStates();
 void addDelay();
-void danceLeds();
-void updateOutLEDs();
-
 
 //////////////////////
 // SETUP /////////////
@@ -139,7 +124,6 @@ void setup()
   
   initializeArduino();
   initializeInputs();
-  danceLeds();
 }
 
 ////////////////////
@@ -147,11 +131,11 @@ void setup()
 ////////////////////
 void loop() 
 {
+  updateUsb();
   updateMeasurementBuffers();
   updateBufferSums();
   updateBufferIndex();
   updateInputStates();
-  updateOutLEDs();
   addDelay();
 }
 
@@ -173,7 +157,6 @@ void delayMs(unsigned int ms)
 void initializeArduino() {
 #ifdef DEBUG
   Serial.begin(9600);  // Serial for debugging
-  Serial.println(111);
 #endif
 
   /* Set up input pins 
@@ -184,13 +167,10 @@ void initializeArduino() {
     digitalWrite(pinNumbers[i], LOW);
   }
 
-  pinMode(outputK, OUTPUT);
   pinMode(ledPin, OUTPUT);
-  digitalWrite(outputK, LOW);
-  digitalWrite(ledPin, LOW);
 
-#ifdef DEBUG2
-  delay(4000); // allow us time to reprogram in case things are freaking out
+#ifdef DEBUG
+  delayMs(4000); // allow us time to reprogram in case things are freaking out
 #endif
 }
 
@@ -221,21 +201,16 @@ void initializeInputs() {
     inputs[i].oldestMeasurement = 0;
     inputs[i].bufferSum = 0;
 
-    inputs[i].pressed = false;
-    inputs[i].prevPressed = false;
-
-    inputs[i].isKey = false;
-
-    if (inputs[i].keyCode < 0) {
-    } 
-    else {
-      inputs[i].isKey = true;
-    }
 #ifdef DEBUG
     Serial.println(i);
 #endif
   }
 }
+
+void updateUsb(){
+  UsbKeyboard.update();
+}
+
 
 //////////////////////////////
 // UPDATE MEASUREMENT BUFFERS
@@ -302,47 +277,38 @@ void updateBufferIndex() {
 // UPDATE INPUT STATES
 ///////////////////////////
 void updateInputStates() {
-  UsbKeyboard.update();
   inputChanged = false;
   for (int i=0; i<NUM_INPUTS; i++) {
     if (inputs[i].pressed) {
       if (inputs[i].bufferSum < releaseThreshold) {
         inputChanged = true;
         inputs[i].pressed = false;
-        UsbKeyboard.releaseKeyStroke();
-        keysPressed = 0;        
-      }
-    if (lastKeyPressed != i) {
-      inputs[lastKeyPressed].pressed = false;
-      keysPressed = 0;
-      inputChanged = false;
-      UsbKeyboard.releaseKeyStroke();
+        releaseKey(inputs[i].keyCode);
     } 
     }
     else if (!inputs[i].pressed) {
       if (inputs[i].bufferSum > pressThreshold) {  // input becomes pressed
         inputChanged = true;
         inputs[i].pressed = true;
-        if (lastKeyPressed != i) {
-          keysPressed += 1;
-          inputs[lastKeyPressed].pressed = false;
-          UsbKeyboard.sendKeyStroke(keyCodes[i]);
-          lastKeyPressed = i;
+        pressKey(inputs[i].keyCode);
         }
       }
     }
-    if (keysPressed == 0) {
-      if (inputs[i].pressed) {
-        inputs[i].pressed = false;
-        lastKeyPressed = -1;
-      }
-    }
- }
-#ifdef DEBUG3
+#ifdef DEBUG_CHANGE
   if (inputChanged) {
     Serial.println("change");
   }
 #endif
+}
+
+void pressKey(byte keyCode){
+  byte modifiers = 0;
+  UsbKeyboard.keyDown(keyCode);
+}
+
+void releaseKey(byte keyCode){
+  //CH note this currently ignores the key value - probably sends equivalent to "all keys up"
+  UsbKeyboard.keyUp(keyCode);
 }
 
 ///////////////////////////
@@ -350,10 +316,11 @@ void updateInputStates() {
 ///////////////////////////
 void addDelay() {
 
-  loopTime = micros() - prevTime;
-  if (loopTime < TARGET_LOOP_TIME) {
-    int wait = TARGET_LOOP_TIME - loopTime;
-    delayMicroseconds(wait);
+  unsigned long targetMoment = prevTime + loopTime;
+  if(targetMoment > prevTime){ //handle micros() overflow condition
+    while(micros() < targetMoment){
+	  updateUsb();
+    }
   }
 
   prevTime = micros();
@@ -368,38 +335,3 @@ void addDelay() {
 #endif
 
 }
-
-///////////////////////////
-// DANCE LEDS
-///////////////////////////
-void danceLeds() {
-  pinMode(ledPin, OUTPUT);
-  digitalWrite(ledPin, HIGH);
-  delayMs(250);
-  pinMode(outputK, OUTPUT);
-  digitalWrite(outputK, HIGH);
-  digitalWrite(ledPin, LOW);
-  delayMs(150);
-  digitalWrite(outputK, LOW);
-}
-
-///////////////////////////
-// update OutLEDs
-///////////////////////////
-void updateOutLEDs()
-{
-  if (keyPressed)
-  {
-    digitalWrite(ledPin, HIGH);
-  }
-  else
-  {
-    digitalWrite(ledPin, LOW);
-  }
-}
-
-
-
-
-
-

@@ -4,16 +4,31 @@
 // KEY MAPPINGS: WHICH KEY MAPS TO WHICH PIN ON THE ShrimpKey-BOARD? //
 /////////////////////////////////////////////////////////////////////////
 
-char keyCodes[NUM_INPUTS] = {
-  KEY_D,  // pin D4
-  KEY_E,  // pin D5
-  KEY_I,  // pin D6
-  KEY_J,  // pin D8
-  KEY_K,  // pin D9
-  KEY_O,  // pin D11
-  KEY_R,  // pin A0
-  KEY_S,  // pin A2
-  KEY_SPACE  // pin A5
+//TODO CH some introduction to how to edit these values
+
+/*
+int keyCodes[NUM_INPUTS] = {
+  KEY_1,
+  KEY_2,
+  KEY_3,
+  KEY_4,
+  KEY_5,
+  KEY_6,
+  KEY_7,
+  KEY_8,
+  KEY_9,
+  KEY_0,
+  KEY_A,
+  KEY_B,
+  KEY_C,
+  KEY_D
+};
+*/
+
+//TODO CH indicate how this is preferred for testing
+//possibly set as default ?
+int keyCodes[NUM_INPUTS] = {
+  KEY_1
 };
 
 ///////////////////////////
