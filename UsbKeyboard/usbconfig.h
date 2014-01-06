@@ -6,10 +6,15 @@
  * Copyright: (c) 2005 by OBJECTIVE DEVELOPMENT Software GmbH
  * License: GNU GPL v2 (see License.txt), GNU GPL v3 or proprietary (CommercialLicense.txt)
  * This Revision: $Id: usbconfig-prototype.h 767 2009-08-22 11:39:22Z cs $
+ * 
+ * Configurable PIN layout by Stephan Baerwolf (stephan@matrixstorm.com), Ilmenau 2013
  */
 
 #ifndef __usbconfig_h_included__
 #define __usbconfig_h_included__
+
+#define Pins_Arduino_h
+#include "pins_arduino.h"
 
 /*
 General Description:
@@ -26,15 +31,27 @@ section at the end of this file).
 
 /* ---------------------------- Hardware Config ---------------------------- */
 
-#define USB_CFG_IOPORTNAME      D
+#ifndef VUSB_CFG_IOPORTNAME
+#	define USB_CFG_IOPORTNAME      D
+#else
+#	define USB_CFG_IOPORTNAME      VUSB_CFG_IOPORTNAME
+#endif
 /* This is the port where the USB bus is connected. When you configure it to
  * "B", the registers PORTB, PINB and DDRB will be used.
  */
-#define USB_CFG_DMINUS_BIT      4
+#ifndef VUSB_CFG_DMINUS_BIT
+#	define USB_CFG_DMINUS_BIT      7
+#else
+#	define USB_CFG_DMINUS_BIT      VUSB_CFG_DMINUS_BIT
+#endif
 /* This is the bit number in USB_CFG_IOPORT where the USB D- line is connected.
  * This may be any bit in the port.
  */
-#define USB_CFG_DPLUS_BIT       2
+#ifndef VUSB_CFG_DPLUS_BIT
+#	define USB_CFG_DPLUS_BIT       2
+#else
+#	define USB_CFG_DPLUS_BIT       VUSB_CFG_DPLUS_BIT
+#endif
 /* This is the bit number in USB_CFG_IOPORT where the USB D+ line is connected.
  * This may be any bit in the port. Please note that D+ must also be connected
  * to interrupt pin INT0! [You can also use other interrupts, see section
@@ -50,7 +67,11 @@ section at the end of this file).
  * other rates require a precision of 2000 ppm and thus a crystal!
  * Default if not specified: 12 MHz
  */
-#define USB_CFG_CHECK_CRC       0
+#ifndef VUSB_CFG_CHECK_CRC
+#	define USB_CFG_CHECK_CRC       0
+#else
+#	define USB_CFG_CHECK_CRC       VUSB_CFG_CHECK_CRC
+#endif
 /* Define this to 1 if you want that the driver checks integrity of incoming
  * data packets (CRC checks). CRC checks cost quite a bit of code size and are
  * currently only available for 18 MHz crystal clock. You must choose
@@ -59,13 +80,25 @@ section at the end of this file).
 
 /* ----------------------- Optional Hardware Config ------------------------ */
 
-#define USB_CFG_PULLUP_IOPORTNAME   D
+#ifndef VUSB_CFG_HASNO_PULLUP_IOPORTNAME
+#	ifndef VUSB_CFG_PULLUP_IOPORTNAME
+#		define USB_CFG_PULLUP_IOPORTNAME   D
+#	else
+#		define USB_CFG_PULLUP_IOPORTNAME   VUSB_CFG_PULLUP_IOPORTNAME
+#	endif
+#endif
 /* If you connect the 1.5k pullup resistor from D- to a port pin instead of
  * V+, you can connect and disconnect the device from firmware by calling
  * the macros usbDeviceConnect() and usbDeviceDisconnect() (see usbdrv.h).
  * This constant defines the port on which the pullup resistor is connected.
  */
-#define USB_CFG_PULLUP_BIT          5
+#ifndef VUSB_CFG_HASNO_PULLUP_BIT
+#	ifndef VUSB_CFG_PULLUP_BIT
+#		define USB_CFG_PULLUP_BIT          5
+#	else
+#		define USB_CFG_PULLUP_BIT          VUSB_CFG_PULLUP_BIT
+#	endif
+#endif
 /* This constant defines the bit number in USB_CFG_PULLUP_IOPORT (defined
  * above) where the 1.5k pullup resistor is connected. See description
  * above for details.
@@ -235,8 +268,8 @@ section at the end of this file).
 #define USB_CFG_DEVICE_VERSION  0x00, 0x01
 /* Version number of the device: Minor number first, then major number.
  */
-#define USB_CFG_VENDOR_NAME     'S','c','r','a','t','c','h','E','d','.','e','u'
-#define USB_CFG_VENDOR_NAME_LEN 12
+#define USB_CFG_VENDOR_NAME     'f','r','o','m','S','c','r','a','t','c','h','E','d','.','n','l'
+#define USB_CFG_VENDOR_NAME_LEN 16
 /* These two values define the vendor name returned by the USB device. The name
  * must be given as a list of characters under single quotes. The characters
  * are interpreted as Unicode (UTF-16) entities.
@@ -273,7 +306,7 @@ section at the end of this file).
  * HID class is 3, no subclass and protocol required (but may be useful!)
  * CDC class is 2, use subclass 2 and protocol 1 for ACM
  */
-#define USB_CFG_HID_REPORT_DESCRIPTOR_LENGTH    35
+#define USB_CFG_HID_REPORT_DESCRIPTOR_LENGTH   89
 /* Define this to the length of the HID report descriptor, if you implement
  * an HID device. Otherwise don't define it or define it to 0.
  * If you use this define, you must add a const PROGMEM character array named
@@ -366,6 +399,11 @@ section at the end of this file).
 /* #define USB_INTR_PENDING_BIT    INTF0 */
 /* #define USB_INTR_VECTOR         SIG_INTERRUPT0 */
 
-#define USB_INTR_VECTOR INT0_vect
+#ifndef VUSB_INTR_VECTOR
+#	define USB_INTR_VECTOR INT0_vect
+#else
+#	define USB_INTR_VECTOR VUSB_INTR_VECTOR
+#endif
+
 
 #endif /* __usbconfig_h_included__ */

@@ -1,35 +1,58 @@
 #include "Arduino.h"
 
-/////////////////////////////////////////////////////////////////////////
-// KEY MAPPINGS: WHICH KEY MAPS TO WHICH PIN ON THE ShrimpKey-BOARD? //
-/////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////
+//  ShrimpKey settings  //////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////
 
-//TODO CH some introduction to how to edit these values
+//#define EXTRA_LED  //uncomment if you want to use an extra LED on pin 12 (or any other pin)
+#ifdef EXTRA_LED
+  int extraLedPIN 12;
+#endif
 
-/*
-int keyCodes[NUM_INPUTS] = {
-  KEY_1,
-  KEY_2,
-  KEY_3,
-  KEY_4,
-  KEY_5,
-  KEY_6,
-  KEY_7,
-  KEY_8,
-  KEY_9,
-  KEY_0,
-  KEY_A,
-  KEY_B,
-  KEY_C,
-  KEY_D
+// Pin Numbers
+#define NUM_INPUTS       16     // how many pins are used, skipping pin 2, 6, 7 and pin 13
+
+int pinNumbers[NUM_INPUTS] = {      // Pin declarations: which pins will be used?
+  0, 1, 3, 4, 5, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19
 };
-*/
 
-//TODO CH indicate how this is preferred for testing
-//possibly set as default ?
-int keyCodes[NUM_INPUTS] = {
-  KEY_1
+char keyCodes[NUM_INPUTS] = {      // Keymappings: which key maps to which pin on the ShrimpKey-board?
+  KEY_W,              // pin D0
+  KEY_A,              // pin D1
+  KEY_S,              // pin D3
+  KEY_D,              // pin D4
+  KEY_F,              // pin D5
+  KEY_G,              // pin D8
+  KEY_I,              // pin D9
+  KEY_J,              // pin D10
+  KEY_K,              // pin D11
+  KEY_L,              // pin D12
+  MOUSE_LEFT,         // pin A0 = 14
+  MOUSE_RIGHT,        // pin A1 = 15
+  MOUSE_MOVE_LEFT,    // pin A2 = 16
+  MOUSE_MOVE_RIGHT,   // pin A3 = 17
+  MOUSE_MOVE_UP,      // pin A4 = 18
+  MOUSE_MOVE_DOWN     // pin A5 = 19
 };
+
+
+/////////////////////////
+// MOUSE MOTION /////////
+/////////////////////////
+#define MOUSE_MOTION_UPDATE_INTERVAL  35   // how many loops to wait between 
+                                           // sending mouse motion updates
+                                           
+#define PIXELS_PER_MOUSE_STEP         4     // a larger number will make the mouse
+                                           // move faster
+
+#define MOUSE_RAMP_SCALE              150  // Scaling factor for mouse movement ramping
+                                           // Lower = more sensitive mouse movement
+                                           // Higher = slower ramping of speed
+                                           // 0 = Ramping off
+                                            
+#define MOUSE_MAX_PIXELS              10   // Max pixels per step for mouse movement
+
+
 
 ///////////////////////////
 // NOISE CANCELLATION /////

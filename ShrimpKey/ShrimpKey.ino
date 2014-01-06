@@ -1,46 +1,79 @@
-#include <UsbKeyboard.h>
-
 /*
  ************************************************
- **************** ShrimpKey *********************
+ ************ ShrimpKey rev. 2a *****************
  ************************************************
  
  ////////////////////////////////////////////////
  /////////////HOW TO EDIT THE KEYS //////////////
  ////////////////////////////////////////////////
  - Edit keys in the settings.h file
- - that file should be open in a tab above (in Arduino IDE)
+ - That file should be open in a tab above (in Arduino IDE)
+ 
+ There is no need to edit anything below...
  
  ////////////////////////////////////////////////
  /////////// ShrimpKey FIRMWARE /////////////////
  ////////////////////////////////////////////////
- by Sjoerd Dirk Meijer, info@scratched.eu
+ Original version developed by
+ Sjoerd Dirk Meijer, info@fromScratchEd.nl
+ 
+ This enhanced version developed by
+ Sjoerd Dirk Meijer, info@fromScratchEd.nl
  and Cefn Hoile, shrimping.it@cefn.com
+ 
+ With contributions from and with many thanks to
+ Stephan Baerwolf, stephan@matrixstorm.com
+ 
  Derived from MakeyMakey Firmware v.1.4.1
  by Eric Rosenbaum, Jay Silver, and Jim Lindblom
  and the vusb-for-arduino UsbKeyboard demo
  http://www.practicalarduino.com/projects/virtual-usb-keyboard
- */
+
+ Copyright (C) 2013  Sjoerd Dirk Meijer
+ 
+ This program is free software; you can redistribute it and/or
+ modify it under the terms of the GNU General Public License
+ as published by the Free Software Foundation; either version 2
+ of the License, or (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with this program; if not, write to the Free Software
+ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+*/
+
+#include <UsbKeyboard.h>
 
 /////////////////////////
 // DEBUG DEFINITIONS ////               
 /////////////////////////
-//#define DEBUG
-#ifdef DEBUG
-//#define DEBUG_CHANGE
-//#define DEBUG_TIMING
-#endif
 
+//#define DEBUG  //when using DEBUG, don't use pin D0 and D1 (RX & TX)!!!
+#ifdef DEBUG
+#define DEBUG_CHANGE
+#define DEBUG_TIMING
+#define DEBUG_MOUSE
+#endif
 
 ////////////////////////
 // DEFINED CONSTANTS////
 ////////////////////////
-
 #define BUFFER_LENGTH    3     // 3 bytes gives us 24 samples
-#define NUM_INPUTS       1     // skipping pin 5 as usbConnect and pin 13 as LED
 //#define TARGET_LOOP_TIME 694   // (1/60 seconds) / 24 samples = 694 microseconds per sample 
 //#define TARGET_LOOP_TIME 758  // (1/55 seconds) / 24 samples = 758 microseconds per sample 
 #define TARGET_LOOP_TIME 744  // (1/56 seconds) / 24 samples = 744 microseconds per sample 
+
+// id numbers for mouse movement inputs (used in settings.h)
+#define MOUSE_MOVE_UP       -1 
+#define MOUSE_MOVE_DOWN     -2
+#define MOUSE_MOVE_LEFT     -3
+#define MOUSE_MOVE_RIGHT    -4
+#define MOUSE_RIGHT         -6
+#define MOUSE_LEFT          -7
 
 #include "settings.h"
 
@@ -54,6 +87,10 @@ typedef struct {
   boolean oldestMeasurement;
   byte bufferSum;
   boolean pressed;
+  boolean prevPressed;
+  boolean isMouseMotion;
+  boolean isMouseButton;
+  boolean isKey;
 } 
 
 ShrimpKeyInput;
@@ -65,32 +102,21 @@ ShrimpKeyInput inputs[NUM_INPUTS];
 int bufferIndex = 0;
 byte byteCounter = 0;
 byte bitCounter = 0;
-
+int mouseMovementCounter = 0; // for sending mouse movement events at a slower interval
 int pressThreshold;
 int releaseThreshold;
 boolean inputChanged;
-
-// Pin Numbers
-
-/*
-int pinNumbers[NUM_INPUTS] = {
-  3,6,7,8,9,10,11,12, //TODO CH - fix possible conflict with usbConnect logic on pin 5
-  A0,A1,A2,A3,A4,A5
-};
-*/
-
-//TODO CH indicate that this should be used for testing
-int pinNumbers[NUM_INPUTS] = {
-  9
-};
-
+int lastKeyPressed = -1;
+int keysPressed = 0;
+boolean keyPressed = 0;
+int mouseHoldCount[NUM_INPUTS]; // used to store mouse movement hold data
 const int ledPin = 13;
 
 // timing
 unsigned long loopTime = 0;
 unsigned long prevTime = 0;
 int loopCounter = 0;
-  
+
 ///////////////////////////
 // FUNCTIONS //////////////
 ///////////////////////////
@@ -100,6 +126,8 @@ void updateMeasurementBuffers();
 void updateBufferSums();
 void updateBufferIndex();
 void updateInputStates();
+void sendMouseButtonEvents();
+void sendMouseMovementEvents();
 void addDelay();
 
 //////////////////////
@@ -110,18 +138,16 @@ void setup()
   //V-USB
   // Disable timer0 since it can mess with the USB timing. Note that
   // this means some functions such as delay() will no longer work.
-  TIMSK0&=!(1<<TOIE0);
 
-  // Clear interrupts while performing time-critical operations
-  cli();
-  // Force re-enumeration so the host will detect us
-  usbDeviceDisconnect();
-  delayMs(250);
-  usbDeviceConnect();
+#if defined (__AVR_ATmega8__) || defined (__AVR_ATmega8A__) || defined (__AVR_ATmega8HVA__) 
+  TIMSK&=!(1<<TOIE0); 
+#elif defined (__AVR_ATmega328__) || defined (__AVR_ATmega328P__) 
+  TIMSK0&=!(1<<TOIE0); 
+#else 
+#error unknown AVR 
+#endif 
 
-  // Set interrupts again
-  sei();  
-  
+  startupLED();
   initializeArduino();
   initializeInputs();
 }
@@ -131,16 +157,19 @@ void setup()
 ////////////////////
 void loop() 
 {
-  updateUsb();
   updateMeasurementBuffers();
   updateBufferSums();
   updateBufferIndex();
   updateInputStates();
+  sendMouseButtonEvents();
+  sendMouseMovementEvents();
   addDelay();
 }
 
-//V-USB
-/**
+////////////////////
+// V-USB  //////////
+////////////////////
+/*
  * Define our own delay function so that we don't have to rely on
  * operation of timer0, the interrupt used by the internal delay()
  */
@@ -149,6 +178,27 @@ void delayMs(unsigned int ms)
   for (int i = 0; i < ms; i++) {
     delayMicroseconds(1000);
   }
+}
+
+//////////////////////////
+// LED
+//////////////////////////
+void startupLED() {
+#ifdef EXTRA_LED    //use pin13 unless EXTRA_LED is defined
+  ledPin = extraLedPin;
+#endif
+
+  pinMode(ledPin, OUTPUT);
+  for (int i=0;i<2;i++){
+    delayMs(100);
+    digitalWrite(ledPin, HIGH);
+    delayMs(100);
+    digitalWrite(ledPin, LOW);
+  }
+  delayMs(100);
+  digitalWrite(ledPin, HIGH);
+  delayMs(500);
+  digitalWrite(ledPin, LOW); 
 }
 
 //////////////////////////
@@ -166,8 +216,6 @@ void initializeArduino() {
     pinMode(pinNumbers[i], INPUT);
     digitalWrite(pinNumbers[i], LOW);
   }
-
-  pinMode(ledPin, OUTPUT);
 
 #ifdef DEBUG
   delayMs(4000); // allow us time to reprogram in case things are freaking out
@@ -201,16 +249,27 @@ void initializeInputs() {
     inputs[i].oldestMeasurement = 0;
     inputs[i].bufferSum = 0;
 
+    inputs[i].pressed = false;
+    inputs[i].prevPressed = false;
+
+    inputs[i].isMouseMotion = false;
+    inputs[i].isMouseButton = false;
+    inputs[i].isKey = false;
+
+    if (inputs[i].keyCode < -5) {
+      inputs[i].isMouseButton = true;
+    } 
+    else if (inputs[i].keyCode < 0) {
+      inputs[i].isMouseMotion = true;
+    } 
+    else {
+      inputs[i].isKey = true;
+    }
 #ifdef DEBUG
     Serial.println(i);
 #endif
   }
 }
-
-void updateUsb(){
-  UsbKeyboard.update();
-}
-
 
 //////////////////////////////
 // UPDATE MEASUREMENT BUFFERS
@@ -277,23 +336,51 @@ void updateBufferIndex() {
 // UPDATE INPUT STATES
 ///////////////////////////
 void updateInputStates() {
+  UsbKeyboard.update();
   inputChanged = false;
   for (int i=0; i<NUM_INPUTS; i++) {
+    inputs[i].prevPressed = inputs[i].pressed; // store previous pressed state (only used for mouse buttons)
     if (inputs[i].pressed) {
       if (inputs[i].bufferSum < releaseThreshold) {
         inputChanged = true;
         inputs[i].pressed = false;
-        releaseKey(inputs[i].keyCode);
-    } 
+        if (inputs[i].isKey) {
+          UsbKeyboard.releaseKeyStroke();
+          keysPressed = 0;
+        }
+        if (inputs[i].isMouseMotion) {  
+          mouseHoldCount[i] = 0;  // input becomes released, reset mouse hold
+        }
+      }
+      else if (inputs[i].isMouseMotion) {  
+        mouseHoldCount[i]++; // input remains pressed, increment mouse hold
+      }
+      if (lastKeyPressed != i) {
+        inputs[lastKeyPressed].pressed = false;
+        keysPressed = 0;
+        inputChanged = false;
+        UsbKeyboard.releaseKeyStroke();
+      } 
     }
     else if (!inputs[i].pressed) {
       if (inputs[i].bufferSum > pressThreshold) {  // input becomes pressed
         inputChanged = true;
         inputs[i].pressed = true;
-        pressKey(inputs[i].keyCode);
+        if (lastKeyPressed != i) {
+          keysPressed += 1;
+          inputs[lastKeyPressed].pressed = false;
+          UsbKeyboard.sendKeyStroke(keyCodes[i]);
+          lastKeyPressed = i;
         }
       }
     }
+    if (keysPressed == 0) {
+      if (inputs[i].pressed) {
+        inputs[i].pressed = false;
+        lastKeyPressed = -1;
+      }
+    }
+  }
 #ifdef DEBUG_CHANGE
   if (inputChanged) {
     Serial.println("change");
@@ -301,14 +388,117 @@ void updateInputStates() {
 #endif
 }
 
-void pressKey(byte keyCode){
-  byte modifiers = 0;
-  UsbKeyboard.keyDown(keyCode);
+/////////////////////////////
+// SEND MOUSE BUTTON EVENTS 
+/////////////////////////////
+void sendMouseButtonEvents() {
+  if (inputChanged) {
+    for (int i=0; i<NUM_INPUTS; i++) {
+      if (inputs[i].isMouseButton) {
+        if (inputs[i].pressed) {
+          if (inputs[i].keyCode == -7) {
+            UsbKeyboard.mouse(0, 0, 1);
+          } 
+          if (inputs[i].keyCode == -6) {
+            UsbKeyboard.mouse(0, 0, 2);
+          } 
+        } 
+        else if (inputs[i].prevPressed) {
+          if (inputs[i].keyCode == -7) {
+            UsbKeyboard.mouse(0, 0, 0);
+          } 
+          if (inputs[i].keyCode == -6) {
+            UsbKeyboard.mouse(0, 0, 0);
+          }           
+        }
+      }
+    }
+  }
 }
 
-void releaseKey(byte keyCode){
-  //CH note this currently ignores the key value - probably sends equivalent to "all keys up"
-  UsbKeyboard.keyUp(keyCode);
+//////////////////////////////
+// SEND MOUSE MOVEMENT EVENTS
+//////////////////////////////
+void sendMouseMovementEvents() {
+  byte right = 0;
+  byte left = 0;
+  byte down = 0;
+  byte up = 0;
+  byte horizmotion = 0;
+  byte vertmotion = 0;
+
+  mouseMovementCounter++;
+  mouseMovementCounter %= MOUSE_MOTION_UPDATE_INTERVAL;
+  if (mouseMovementCounter == 0) {
+    for (int i=0; i<NUM_INPUTS; i++) {
+#ifdef DEBUG_MOUSE
+      Serial.println(inputs[i].isMouseMotion);  
+#endif
+
+      if (inputs[i].isMouseMotion) {
+        if (inputs[i].pressed) {
+          if (inputs[i].keyCode == MOUSE_MOVE_UP) {
+            // JL Changes (x4): now update to 1 + a hold factor, constrained between 1 and mouse max movement speed
+            up=constrain(1+mouseHoldCount[i]/MOUSE_RAMP_SCALE, 1, MOUSE_MAX_PIXELS);
+          }  
+          if (inputs[i].keyCode == MOUSE_MOVE_DOWN) {
+            down=constrain(1+mouseHoldCount[i]/MOUSE_RAMP_SCALE, 1, MOUSE_MAX_PIXELS);
+          }  
+          if (inputs[i].keyCode == MOUSE_MOVE_LEFT) {
+            left=constrain(1+mouseHoldCount[i]/MOUSE_RAMP_SCALE, 1, MOUSE_MAX_PIXELS);
+          }  
+          if (inputs[i].keyCode == MOUSE_MOVE_RIGHT) {
+            right=constrain(1+mouseHoldCount[i]/MOUSE_RAMP_SCALE, 1, MOUSE_MAX_PIXELS);
+          }  
+        }
+      }
+    }
+
+    // left/right cancellation 
+    // and diagonal scrolling (does not work at the moment)
+    if(left > 0)
+    {
+      if(right > 0)
+      {
+        horizmotion = 0; // cancel horizontal motion because left and right are both pushed
+      }
+      else
+      {
+        horizmotion = -left; // left yes, right no
+      }
+    }
+    else
+    {
+      if(right > 0)
+      {
+        horizmotion = right; // right yes, left no
+      }
+    }
+
+    if(down > 0)
+    {
+      if(up > 0)
+      {
+        vertmotion = 0; // cancel vertical motion because up and down are both pushed
+      }
+      else
+      {
+        vertmotion = down; // down yes, up no
+      }
+    }
+    else
+    {
+      if (up > 0)
+      {
+        vertmotion = -up; // up yes, down no
+      }
+    }
+    // now move the mouse
+    if( !((horizmotion == 0) && (vertmotion==0)) )
+    {
+      UsbKeyboard.mouse(horizmotion * PIXELS_PER_MOUSE_STEP, vertmotion * PIXELS_PER_MOUSE_STEP, 0);
+    }
+  }
 }
 
 ///////////////////////////
@@ -316,11 +506,10 @@ void releaseKey(byte keyCode){
 ///////////////////////////
 void addDelay() {
 
-  unsigned long targetMoment = prevTime + loopTime;
-  if(targetMoment > prevTime){ //handle micros() overflow condition
-    while(micros() < targetMoment){
-	  updateUsb();
-    }
+  loopTime = micros() - prevTime;
+  if (loopTime < TARGET_LOOP_TIME) {
+    int wait = TARGET_LOOP_TIME - loopTime;
+    delayMicroseconds(wait);
   }
 
   prevTime = micros();
@@ -333,5 +522,7 @@ void addDelay() {
   loopCounter++;
   loopCounter %= 999;
 #endif
-
 }
+
+
+
