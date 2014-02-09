@@ -17,8 +17,8 @@ int pinNumbers[NUM_INPUTS] = {      // Pin declarations: which pins will be used
 };
 
 char keyCodes[NUM_INPUTS] = {      // Keymappings: which key maps to which pin on the ShrimpKey-board?
-  KEY_W,              // pin D0
-  KEY_A,              // pin D1
+  MOD_SHIFT_LEFT,              // pin D0
+  MOD_CONTROL_LEFT,              // pin D1
   KEY_S,              // pin D3
   KEY_D,              // pin D4
   KEY_F,              // pin D5
