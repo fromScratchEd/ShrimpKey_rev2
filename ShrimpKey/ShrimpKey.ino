@@ -29,7 +29,7 @@
  and the vusb-for-arduino UsbKeyboard demo
  http://www.practicalarduino.com/projects/virtual-usb-keyboard
 
- Copyright (C) 2013  Sjoerd Dirk Meijer
+ Copyright (C) 2013-2014  Sjoerd Dirk Meijer
  
  This program is free software; you can redistribute it and/or
  modify it under the terms of the GNU General Public License
@@ -350,12 +350,13 @@ void updateInputStates() {
         }
         if (inputs[i].isMouseMotion) {  
           mouseHoldCount[i] = 0;  // input becomes released, reset mouse hold
+          UsbKeyboard.releaseMouse();
         }
       }
       else if (inputs[i].isMouseMotion) {  
         mouseHoldCount[i]++; // input remains pressed, increment mouse hold
       }
-      if (lastKeyPressed != i) {
+      if ((lastKeyPressed != i) && (inputs[i].isKey)) {
         inputs[lastKeyPressed].pressed = false;
         keysPressed = 0;
         inputChanged = false;
@@ -366,7 +367,7 @@ void updateInputStates() {
       if (inputs[i].bufferSum > pressThreshold) {  // input becomes pressed
         inputChanged = true;
         inputs[i].pressed = true;
-        if (lastKeyPressed != i) {
+        if ((lastKeyPressed != i) && (inputs[i].isKey)) {
           keysPressed += 1;
           inputs[lastKeyPressed].pressed = false;
           UsbKeyboard.sendKeyStroke(keyCodes[i]);
@@ -374,7 +375,7 @@ void updateInputStates() {
         }
       }
     }
-    if (keysPressed == 0) {
+    if ((keysPressed == 0) && (inputs[i].isKey)) {
       if (inputs[i].pressed) {
         inputs[i].pressed = false;
         lastKeyPressed = -1;
@@ -430,6 +431,7 @@ void sendMouseMovementEvents() {
   mouseMovementCounter++;
   mouseMovementCounter %= MOUSE_MOTION_UPDATE_INTERVAL;
   if (mouseMovementCounter == 0) {
+   
     for (int i=0; i<NUM_INPUTS; i++) {
 #ifdef DEBUG_MOUSE
       Serial.println(inputs[i].isMouseMotion);  
