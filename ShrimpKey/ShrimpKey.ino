@@ -91,6 +91,7 @@ typedef struct {
   boolean isMouseMotion;
   boolean isMouseButton;
   boolean isKey;
+  boolean isMod;
 } 
 
 ShrimpKeyInput;
@@ -111,6 +112,8 @@ int keysPressed = 0;
 boolean keyPressed = 0;
 int mouseHoldCount[NUM_INPUTS]; // used to store mouse movement hold data
 const int ledPin = 13;
+int modifier = 0;
+int lastModifier = 0;
 
 // timing
 unsigned long loopTime = 0;
@@ -256,7 +259,16 @@ void initializeInputs() {
     inputs[i].isMouseButton = false;
     inputs[i].isKey = false;
 
-    if (inputs[i].keyCode < -5) {
+    if ((inputs[i].keyCode == MOD_CONTROL_LEFT) or
+     (inputs[i].keyCode == MOD_SHIFT_LEFT) or
+     (inputs[i].keyCode == MOD_ALT_LEFT) or
+     (inputs[i].keyCode == MOD_GUI_LEFT) or
+     (inputs[i].keyCode == MOD_CONTROL_RIGHT) or
+     (inputs[i].keyCode == MOD_SHIFT_RIGHT) or
+     (inputs[i].keyCode == MOD_ALT_RIGHT) or
+     (inputs[i].keyCode == MOD_GUI_RIGHT)) {
+      inputs[i].isMod = true;
+    } else if (inputs[i].keyCode < -5) {
       inputs[i].isMouseButton = true;
     } 
     else if (inputs[i].keyCode < 0) {
@@ -338,7 +350,8 @@ void updateBufferIndex() {
 void updateInputStates() {
   UsbKeyboard.update();
   inputChanged = false;
-  for (int i=0; i<NUM_INPUTS; i++) {
+  lastModifier = modifier; //store previous modifier
+  for (int i=0; i<NUM_INPUTS; i++) {    
     inputs[i].prevPressed = inputs[i].pressed; // store previous pressed state (only used for mouse buttons)
     if (inputs[i].pressed) {
       if (inputs[i].bufferSum < releaseThreshold) {
@@ -351,6 +364,9 @@ void updateInputStates() {
         if (inputs[i].isMouseMotion) {  
           mouseHoldCount[i] = 0;  // input becomes released, reset mouse hold
           UsbKeyboard.releaseMouse();
+        }
+        if (inputs[i].isMod) {
+          modifier -= keyCodes[i];
         }
       }
       else if (inputs[i].isMouseMotion) {  
@@ -367,13 +383,20 @@ void updateInputStates() {
       if (inputs[i].bufferSum > pressThreshold) {  // input becomes pressed
         inputChanged = true;
         inputs[i].pressed = true;
+        if (inputs[i].isMod) {
+          modifier += keyCodes[i];
+        }
         if ((lastKeyPressed != i) && (inputs[i].isKey)) {
           keysPressed += 1;
           inputs[lastKeyPressed].pressed = false;
-          UsbKeyboard.sendKeyStroke(keyCodes[i]);
+          UsbKeyboard.sendKeyStroke(keyCodes[i], modifier);
           lastKeyPressed = i;
         }
       }
+    }
+    if ((lastKeyPressed == i) && (inputs[i].isKey) && !(lastModifier == modifier) && (keysPressed > 0)) {
+      //Resend keystroke when modifier is changed
+      UsbKeyboard.sendKeyStroke(keyCodes[i], modifier);
     }
     if ((keysPressed == 0) && (inputs[i].isKey)) {
       if (inputs[i].pressed) {
