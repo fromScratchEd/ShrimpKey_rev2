@@ -14,15 +14,15 @@
  ////////////////////////////////////////////////
  /////////// ShrimpKey FIRMWARE /////////////////
  ////////////////////////////////////////////////
- Original version developed by
- Sjoerd Dirk Meijer, info@fromScratchEd.nl
- 
- This enhanced version developed by
- Sjoerd Dirk Meijer, info@fromScratchEd.nl
- and Cefn Hoile, shrimping.it@cefn.com
+ Developed by
+   Sjoerd Dirk Meijer, info@fromScratchEd.nl
  
  With contributions from and with many thanks to
- Stephan Baerwolf, stephan@matrixstorm.com
+   Cefn Hoile, shrimping.it@cefn.com
+   (for his ideas/improvements and fixes)
+ and
+   Stephan Baerwolf, stephan@matrixstorm.com
+   (for his support on adding USBaspLoader-support)
  
  Derived from MakeyMakey Firmware v.1.4.1
  by Eric Rosenbaum, Jay Silver, and Jim Lindblom
@@ -65,7 +65,7 @@
 #define BUFFER_LENGTH    3     // 3 bytes gives us 24 samples
 //#define TARGET_LOOP_TIME 694   // (1/60 seconds) / 24 samples = 694 microseconds per sample 
 //#define TARGET_LOOP_TIME 758  // (1/55 seconds) / 24 samples = 758 microseconds per sample 
-#define TARGET_LOOP_TIME 744  // (1/56 seconds) / 24 samples = 744 microseconds per sample 
+#define TARGET_LOOP_TIME 744  // (1/56 seconds) / 24 samples = 744 microseconds per sample
 
 // id numbers for mouse movement inputs (used in settings.h)
 #define MOUSE_MOVE_UP       -1 
@@ -119,6 +119,13 @@ int lastModifier = 0;
 unsigned long loopTime = 0;
 unsigned long prevTime = 0;
 int loopCounter = 0;
+
+#ifdef SIM_KEYPRESS
+int pressedPins[NUM_INPUTS]; //to store which pins are pressed
+int reportBuf = 0;
+int lastReportBuf = 0;
+int keyReg[NUM_SIM]; //to store keys to send to UsbKeyboard.h
+#endif
 
 ///////////////////////////
 // FUNCTIONS //////////////
@@ -354,30 +361,40 @@ void updateInputStates() {
   for (int i=0; i<NUM_INPUTS; i++) {    
     inputs[i].prevPressed = inputs[i].pressed; // store previous pressed state (only used for mouse buttons)
     if (inputs[i].pressed) {
-      if (inputs[i].bufferSum < releaseThreshold) {
+      if (inputs[i].bufferSum < releaseThreshold) { //input becomes released
         inputChanged = true;
         inputs[i].pressed = false;
+    #ifndef SIM_KEYPRESS
         if (inputs[i].isKey) {
-          UsbKeyboard.releaseKeyStroke();
+          UsbKeyboard.releaseKeyStroke(); //input becomes released, release all keys
           keysPressed = 0;
         }
+    #endif
+    #ifdef SIM_KEYPRESS
+        if ((inputs[i].isKey) && (pressedPins[i] == 1)) {
+          pressedPins[i] = 0;
+          keysPressed -= 1;
+        }
+    #endif
         if (inputs[i].isMouseMotion) {  
           mouseHoldCount[i] = 0;  // input becomes released, reset mouse hold
           UsbKeyboard.releaseMouse();
         }
         if (inputs[i].isMod) {
-          modifier -= keyCodes[i];
+          modifier -= keyCodes[i]; //input becomes released, substract key from modifier
         }
       }
       else if (inputs[i].isMouseMotion) {  
         mouseHoldCount[i]++; // input remains pressed, increment mouse hold
       }
-      if ((lastKeyPressed != i) && (inputs[i].isKey)) {
+    #ifndef SIM_KEYPRESS
+      if ((lastKeyPressed != i) && (inputs[i].isKey)) { 
         inputs[lastKeyPressed].pressed = false;
         keysPressed = 0;
         inputChanged = false;
         UsbKeyboard.releaseKeyStroke();
-      } 
+      }
+    #endif
     }
     else if (!inputs[i].pressed) {
       if (inputs[i].bufferSum > pressThreshold) {  // input becomes pressed
@@ -386,24 +403,73 @@ void updateInputStates() {
         if (inputs[i].isMod) {
           modifier += keyCodes[i];
         }
-        if ((lastKeyPressed != i) && (inputs[i].isKey)) {
+      #ifndef SIM_KEYPRESS
+        if ((lastKeyPressed != i) && (inputs[i].isKey)) { //if this is a new (second, third) key pressed, send this key
           keysPressed += 1;
           inputs[lastKeyPressed].pressed = false;
-          UsbKeyboard.sendKeyStroke(keyCodes[i], modifier);
+          UsbKeyboard.sendKeyStroke(keyCodes[i], 0, 0, 0, 0, 0, modifier);
           lastKeyPressed = i;
         }
+      #endif
+      #ifdef SIM_KEYPRESS
+        if ((lastKeyPressed != 1) && (inputs[i].isKey) && (pressedPins[i] == 0)) {
+          pressedPins[i] = 1;
+          keysPressed += 1; 
+        }
+      #endif
       }
     }
+  #ifndef SIM_KEYPRESS
     if ((lastKeyPressed == i) && (inputs[i].isKey) && !(lastModifier == modifier) && (keysPressed > 0)) {
       //Resend keystroke when modifier is changed
-      UsbKeyboard.sendKeyStroke(keyCodes[i], modifier);
+      UsbKeyboard.sendKeyStroke(keyCodes[i], 0, 0, 0, 0, 0, modifier);
     }
-    if ((keysPressed == 0) && (inputs[i].isKey)) {
+    if ((keysPressed == 0) && (inputs[i].isKey)) { //clean up
       if (inputs[i].pressed) {
         inputs[i].pressed = false;
         lastKeyPressed = -1;
       }
     }
+  #endif
+  #ifdef SIM_KEYPRESS
+    reportBuf = 0;
+    if (keysPressed >= (NUM_SIM + 1)) {
+      keysPressed = NUM_SIM;
+    }
+    if ((keysPressed > 0) && (lastReportBuf != keysPressed)) {
+      for (int i=0; i<NUM_SIM; i++) { //empty previous pressed keys
+        keyReg[i] = 0;
+      }
+      for (int i=0; i<NUM_INPUTS; i++) {
+        if (pressedPins[i] == 1) {
+          if (reportBuf <= NUM_SIM) {
+            keyReg[reportBuf] = i;
+          } else {
+            pressedPins[i] = 0; // truncated extra pressed pins 
+          }
+          reportBuf += 1;
+          if (reportBuf >= NUM_SIM) {
+            reportBuf = NUM_SIM;
+          }         
+        }
+      }
+      lastReportBuf = reportBuf;
+      UsbKeyboard.sendKeyStroke(keyCodes[keyReg[0]], keyCodes[keyReg[1]], keyCodes[keyReg[2]], keyCodes[keyReg[3]], keyCodes[keyReg[4]], keyCodes[keyReg[5]], modifier);
+    }
+    if (!(lastModifier == modifier) && (lastReportBuf == keysPressed)) { //resend keys if modifier has been changed
+      UsbKeyboard.sendKeyStroke(keyCodes[keyReg[0]], keyCodes[keyReg[1]], keyCodes[keyReg[2]], keyCodes[keyReg[3]], keyCodes[keyReg[4]], keyCodes[keyReg[5]], modifier);
+    }
+    if ((lastReportBuf != reportBuf) && (keysPressed == 0)) {
+      lastReportBuf = 0;
+      for (int i=0; i<NUM_SIM; i++) { //empty previous pressed keys
+        keyReg[i] = 0;
+      }
+      for (int i=0; i<NUM_INPUTS; i++) { //clear registration of pressed keys
+        pressedPins[i] = 0;
+      }
+      UsbKeyboard.releaseKeyStroke(); 
+    }
+  #endif
   }
 #ifdef DEBUG_CHANGE
   if (inputChanged) {

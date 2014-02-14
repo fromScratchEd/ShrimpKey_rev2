@@ -19,7 +19,7 @@
 typedef uint8_t byte;
 
 
-#define BUFFER_SIZE 4 // Minimum of 2: 1 for modifiers + 1 for keystroke 
+#define BUFFER_SIZE 8 // Minimum of 2: 1 for modifiers + 1 for keystroke 
 
 
 static uchar    idleRate;           // in 4 ms units 
@@ -75,7 +75,7 @@ const PROGMEM char usbHidReportDescriptor[89] = {
     0x75, 0x01,                    //   REPORT_SIZE (1)
     0x95, 0x08,                    //   REPORT_COUNT (8)
     0x81, 0x02,                    //   INPUT (Data,Var,Abs)
-   0x95, 0x01,                    //   REPORT_COUNT (1)
+   0x95, 0x06,                    //   REPORT_COUNT (6)
     0x75, 0x08,                    //   REPORT_SIZE (8)
     0x25, 0x65,                    //   LOGICAL_MAXIMUM (101)   
     0x19, 0x00,                    //   USAGE_MINIMUM (Reserved, No Event)
@@ -169,7 +169,7 @@ const PROGMEM char usbHidReportDescriptor[89] = {
 #define KEY_ARROW_RIGHT	79
 #define KEY_ARROW_LEFT	80
 #define KEY_ARROW_DOWN	81
-#define KEY_ARROW_UP	82
+#define KEY_ARROW_UP		82
 
 #define KEY_EXECUTE		116
 #define KEY_HELP			117
@@ -223,11 +223,7 @@ class UsbKeyboardDevice {
     usbPoll();
   }
     
-  void sendKeyStroke(byte keyStroke) {
-    sendKeyStroke(keyStroke, 0);
-  }
-
-  void sendKeyStroke(byte keyStroke, byte modifiers) {
+  void sendKeyStroke(byte keyStroke1, byte keyStroke2, byte keyStroke3, byte keyStroke4, byte keyStroke5, byte keyStroke6, byte modifiers) {
       
     while (!usbInterruptIsReady()) {
       // Note: We wait until we can send keystroke
@@ -239,7 +235,12 @@ class UsbKeyboardDevice {
 
 	reportBuffer[0] = 75;
 	reportBuffer[1] = modifiers;
-	reportBuffer[2] = keyStroke;
+	reportBuffer[2] = keyStroke1;
+	reportBuffer[3] = keyStroke2;
+	reportBuffer[4] = keyStroke3;
+	reportBuffer[5] = keyStroke4;
+	reportBuffer[6] = keyStroke5;
+	reportBuffer[7] = keyStroke6;
     
 	usbSetInterrupt(reportBuffer, sizeof(reportBuffer));
 
@@ -264,12 +265,17 @@ class UsbKeyboardDevice {
 	reportBuffer[0] = 75;
 	reportBuffer[1] = 0;
 	reportBuffer[2] = 0;
+	reportBuffer[3] = 0;
+	reportBuffer[4] = 0;
+	reportBuffer[5] = 0;
+	reportBuffer[6] = 0;
+	reportBuffer[7] = 0;
 	
     usbSetInterrupt(reportBuffer, sizeof(reportBuffer));
   }
   
   //private: TODO: Make friend?
-  uchar    reportBuffer[4];    // buffer for HID reports [ 1 modifier byte + (len-1) key strokes]
+  uchar    reportBuffer[8];    // buffer for HID reports [ 1 modifier byte + (len-1) key strokes]
 
  //MOUSE
 
