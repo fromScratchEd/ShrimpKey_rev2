@@ -170,9 +170,9 @@ void loop()
   updateMeasurementBuffers();
   updateBufferSums();
   updateBufferIndex();
-  updateInputStates();
-  sendMouseButtonEvents();
-  sendMouseMovementEvents();
+  updateInputStates(); //sends key presses and detect changes for mouse clicks and movements
+  sendMouseButtonEvents(); //sends mousebutton clicks
+  sendMouseMovementEvents(); //sends mouse movements
   addDelay();
 }
 
