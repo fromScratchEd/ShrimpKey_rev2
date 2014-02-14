@@ -1,7 +1,24 @@
 /*
- * Based on Obdev's AVRUSB code and under the same license.
+ * Based on Obdev's AVRUSB code ( http://www.obdev.at/vusb/ ).
  *
- * TODO: Make a proper file header. :-)
+ * Derived from the vusb-for-arduino UsbKeyboard demo
+ * http://www.practicalarduino.com/projects/virtual-usb-keyboard
+ * 
+ * Copyright (C) 2013-2014  Sjoerd Dirk Meijer
+ *  
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 #ifndef __UsbKeyboard_h__
 #define __UsbKeyboard_h__
@@ -12,21 +29,14 @@
 
 #include "usbdrv.h"
 
-// TODO: Work around Arduino 12 issues better.
-//#include <WConstants.h>
-//#undef int()
-
 typedef uint8_t byte;
-
 
 #define BUFFER_SIZE 8 // Minimum of 2: 1 for modifiers + 1 for keystroke 
 
-
 static uchar    idleRate;           // in 4 ms units 
 
-
 /* We use a simplifed keyboard report descriptor which does not support the
- * boot protocol. We don't allow setting status LEDs and but we do allow
+ * boot protocol. We don't allow setting status LEDs, but we do allow
  * simultaneous key presses. 
  * The report descriptor has been created with usb.org's "HID Descriptor Tool"
  * which can be downloaded from http://www.usb.org/developers/hidpage/.
@@ -35,68 +45,67 @@ static uchar    idleRate;           // in 4 ms units
  */
 
 const PROGMEM char usbHidReportDescriptor[89] = {
-0x05, 0x01,                    // 52: USAGE_PAGE (Generic Desktop)
-0x09, 0x02,                    // USAGE (Mouse)
-0xa1, 0x01,                    // COLLECTION (Application)
-    0x85, 0x4d,                 //   REPORT_ID (77)
-0x09, 0x01,                    //   USAGE (Pointer)
-0xa1, 0x00,                    //   COLLECTION (Physical)
-0x05, 0x09,                    //     USAGE_PAGE (Button)
-0x19, 0x01,                    //     USAGE_MINIMUM (Button 1)
-0x29, 0x03,                    //     USAGE_MAXIMUM (Button 3)
-0x15, 0x00,                    //     LOGICAL_MINIMUM (0)
-0x25, 0x01,                    //     LOGICAL_MAXIMUM (1)
-0x95, 0x03,                    //     REPORT_COUNT (3)
-0x75, 0x01,                    //     REPORT_SIZE (1)
-0x81, 0x02,                    //     INPUT (Data,Var,Abs)
-0x95, 0x01,                    //     REPORT_COUNT (1)
-0x75, 0x05,                    //     REPORT_SIZE (5)
-0x81, 0x03,                    //     INPUT (Cnst,Var,Abs)
-0x05, 0x01,                    //     USAGE_PAGE (Generic Desktop)
-0x09, 0x30,                    //     USAGE (X)
-0x09, 0x31,                    //     USAGE (Y)
-0x15, 0x81,                    //     LOGICAL_MINIMUM (-127)
-0x25, 0x7f,                    //     LOGICAL_MAXIMUM (127)
-0x75, 0x08,                    //     REPORT_SIZE (8)
-0x95, 0x02,                    //     REPORT_COUNT (2)
-0x81, 0x06,                    //     INPUT (Data,Var,Rel)
-0xc0,                          //   END_COLLECTION
-0xc0,                           // END_COLLECTION
+	0x05, 0x01,                    // 52: USAGE_PAGE (Generic Desktop)
+	0x09, 0x02,                    // USAGE (Mouse)
+	0xa1, 0x01,                    // COLLECTION (Application)
+	0x85, 0x4d,                    //   REPORT_ID (77)
+	0x09, 0x01,                    //   USAGE (Pointer)
+	0xa1, 0x00,                    //   COLLECTION (Physical)
+	0x05, 0x09,                    //     USAGE_PAGE (Button)
+	0x19, 0x01,                    //     USAGE_MINIMUM (Button 1)
+	0x29, 0x03,                    //     USAGE_MAXIMUM (Button 3)
+	0x15, 0x00,                    //     LOGICAL_MINIMUM (0)
+	0x25, 0x01,                    //     LOGICAL_MAXIMUM (1)
+	0x95, 0x03,                    //     REPORT_COUNT (3)
+	0x75, 0x01,                    //     REPORT_SIZE (1)
+	0x81, 0x02,                    //     INPUT (Data,Var,Abs)
+	0x95, 0x01,                    //     REPORT_COUNT (1)
+	0x75, 0x05,                    //     REPORT_SIZE (5)
+	0x81, 0x03,                    //     INPUT (Cnst,Var,Abs)
+	0x05, 0x01,                    //     USAGE_PAGE (Generic Desktop)
+	0x09, 0x30,                    //     USAGE (X)
+	0x09, 0x31,                    //     USAGE (Y)
+	0x15, 0x81,                    //     LOGICAL_MINIMUM (-127)
+	0x25, 0x7f,                     //     LOGICAL_MAXIMUM (127)
+	0x75, 0x08,                    //     REPORT_SIZE (8)
+	0x95, 0x02,                    //     REPORT_COUNT (2)
+	0x81, 0x06,                    //     INPUT (Data,Var,Rel)
+	0xc0,                             //   END_COLLECTION
+	0xc0,                             // END_COLLECTION
 
-    0x05, 0x01,                    // 37: USAGE_PAGE (Generic Desktop)
-    0x09, 0x06,                    // USAGE (Keyboard)
-    0xa1, 0x01,                    // COLLECTION (Application)
-    0x85, 0x4b,              //   REPORT_ID (75)
-    0x05, 0x07,                    //   USAGE_PAGE (Keyboard)
-    0x19, 0xE0,                    //   USAGE_MINIMUM (Left Ctrl)
-    0x29, 0xE7,                    //   USAGE_MAXIMUM (Right GUI)
-    0x15, 0x00,                    //   LOGICAL_MINIMUM (0)
-    0x25, 0x01,                    //   LOGICAL_MAXIMUM (1)
-    0x75, 0x01,                    //   REPORT_SIZE (1)
-    0x95, 0x08,                    //   REPORT_COUNT (8)
-    0x81, 0x02,                    //   INPUT (Data,Var,Abs)
-   0x95, 0x06,                    //   REPORT_COUNT (6)
-    0x75, 0x08,                    //   REPORT_SIZE (8)
-    0x25, 0x65,                    //   LOGICAL_MAXIMUM (101)   
-    0x19, 0x00,                    //   USAGE_MINIMUM (Reserved, No Event)
-    0x29, 0x65,                    //   USAGE_MAXIMUM (Keyboard Application)
-    0x81, 0x00,                    //   INPUT (Data,Var,Abs)
-    0xc0                           // END_COLLECTION
+	0x05, 0x01,                    // 37: USAGE_PAGE (Generic Desktop)
+	0x09, 0x06,                    // USAGE (Keyboard)
+	0xa1, 0x01,                    // COLLECTION (Application)
+	0x85, 0x4b,                    //   REPORT_ID (75)
+	0x05, 0x07,                    //   USAGE_PAGE (Keyboard)
+	0x19, 0xE0,                    //   USAGE_MINIMUM (Left Ctrl)
+	0x29, 0xE7,                    //   USAGE_MAXIMUM (Right GUI)
+	0x15, 0x00,                    //   LOGICAL_MINIMUM (0)
+	0x25, 0x01,                    //   LOGICAL_MAXIMUM (1)
+	0x75, 0x01,                    //   REPORT_SIZE (1)
+	0x95, 0x08,                    //   REPORT_COUNT (8)
+	0x81, 0x02,                    //   INPUT (Data,Var,Abs)
+	0x95, 0x06,                    //   REPORT_COUNT (6)
+	0x75, 0x08,                    //   REPORT_SIZE (8)
+	0x25, 0x65,                    //   LOGICAL_MAXIMUM (101)   
+	0x19, 0x00,                    //   USAGE_MINIMUM (Reserved, No Event)
+	0x29, 0x65,                    //   USAGE_MAXIMUM (Keyboard Application)
+	0x81, 0x00,                    //   INPUT (Data,Var,Abs)
+	0xc0                              // END_COLLECTION
 };
-
 
 /* Keyboard usage values, see usb.org's HID-usage-tables document, chapter
  * 10 Keyboard/Keypad Page for more codes.
  */
-#define MOD_CONTROL_LEFT    (1<<0)
-#define MOD_SHIFT_LEFT      (1<<1)
-#define MOD_ALT_LEFT        (1<<2)
-#define MOD_GUI_LEFT        (1<<3)
-#define MOD_CONTROL_RIGHT   (1<<4)
-#define MOD_SHIFT_RIGHT     (1<<5)
-#define MOD_ALT_RIGHT       (1<<6)
-#define MOD_GUI_RIGHT       (1<<7)
-#define MOD_CAPSLOCK		57
+#define MOD_CONTROL_LEFT    	(1<<0)
+#define MOD_SHIFT_LEFT      		(1<<1)
+#define MOD_ALT_LEFT        		(1<<2)
+#define MOD_GUI_LEFT        		(1<<3)
+#define MOD_CONTROL_RIGHT   	(1<<4)
+#define MOD_SHIFT_RIGHT     		(1<<5)
+#define MOD_ALT_RIGHT       		(1<<6)
+#define MOD_GUI_RIGHT       		(1<<7)
+#define MOD_CAPSLOCK				57
 
 #define KEY_A       4
 #define KEY_B       5
@@ -135,41 +144,41 @@ const PROGMEM char usbHidReportDescriptor[89] = {
 #define KEY_9       38
 #define KEY_0       39
 
-#define KEY_ENTER 	40
-#define KEY_ESCAPE	41
-#define KEY_DELETE	42
-#define KEY_TAB			43
-#define KEY_SPACE 	44
-#define KEY_MINUS		45
-#define KEY_EQUAL		46
-#define KEY_SQBRO	47  // [ 
-#define KEY_SQBRC		48  //  ]
+#define KEY_ENTER 			40
+#define KEY_ESCAPE			41
+#define KEY_DELETE			42
+#define KEY_TAB					43
+#define KEY_SPACE 			44
+#define KEY_MINUS				45
+#define KEY_EQUAL				46  // =
+#define KEY_SQBRO			47  // [ 
+#define KEY_SQBRC				48  //  ]
 #define KEY_BACKSLASH	49
 #define KEY_SEMICOLON		51
-#define KEY_ACCENT	52
-#define KEY_GRAVE		53
-#define KEY_COMMA	54
-#define KEY_DOT			55
-#define KEY_SLASH		56
-#define KEY_PLUS		87
+#define KEY_ACCENT			52
+#define KEY_GRAVE				53
+#define KEY_COMMA			54
+#define KEY_DOT					55
+#define KEY_SLASH				56
+#define KEY_PLUS				87
 
-#define KEY_F1      58
-#define KEY_F2      59
-#define KEY_F3      60
-#define KEY_F4      61
-#define KEY_F5      62
-#define KEY_F6      63
-#define KEY_F7      64
-#define KEY_F8      65
-#define KEY_F9      66
+#define KEY_F1       58
+#define KEY_F2       59
+#define KEY_F3       60
+#define KEY_F4       61
+#define KEY_F5       62
+#define KEY_F6       63
+#define KEY_F7       64
+#define KEY_F8       65
+#define KEY_F9       66
 #define KEY_F10     67
 #define KEY_F11     68
 #define KEY_F12     69
 
 #define KEY_ARROW_RIGHT	79
-#define KEY_ARROW_LEFT	80
+#define KEY_ARROW_LEFT		80
 #define KEY_ARROW_DOWN	81
-#define KEY_ARROW_UP		82
+#define KEY_ARROW_UP			82
 
 #define KEY_EXECUTE		116
 #define KEY_HELP			117
@@ -197,7 +206,6 @@ const PROGMEM char usbHidReportDescriptor[89] = {
 #define KEY_PAGEDWN	78
 
 
-
 class UsbKeyboardDevice {
  public:
   UsbKeyboardDevice () {
@@ -207,7 +215,6 @@ class UsbKeyboardDevice {
     cli();
     usbDeviceDisconnect();
     usbDeviceConnect();
-
 
     usbInit();
       
@@ -243,18 +250,6 @@ class UsbKeyboardDevice {
 	reportBuffer[7] = keyStroke6;
     
 	usbSetInterrupt(reportBuffer, sizeof(reportBuffer));
-
-    //while (!usbInterruptIsReady()) {
-      // Note: We wait until we can send keystroke
-      //       so we know the previous keystroke was
-      //       sent.
-    //}
-      
-    //// This stops endlessly repeating keystrokes:
-    //// SDM: Moved to releaseKeyStroke
-    //memset(reportBuffer, 0, sizeof(reportBuffer));  //wat, vervangen door, hoeveel keer     
-    //usbSetInterrupt(reportBuffer, sizeof(reportBuffer));
-
   }
 
   void releaseKeyStroke() {
@@ -277,10 +272,9 @@ class UsbKeyboardDevice {
   //private: TODO: Make friend?
   uchar    reportBuffer[8];    // buffer for HID reports [ 1 modifier byte + (len-1) key strokes]
 
- //MOUSE
-
-void mouse(char dx, char dy, uchar button)
-{
+  //MOUSE
+  void mouse(char dx, char dy, uchar button)
+  {
     memset(reportBuffer, 0, sizeof(reportBuffer));
 		
 	reportBuffer[0] = 77;
@@ -289,25 +283,24 @@ void mouse(char dx, char dy, uchar button)
 	reportBuffer[3] = dy; //Y
 	
 	usbSetInterrupt(reportBuffer, sizeof(reportBuffer));
-}
+  }
 
-void releaseMouse(){
+  void releaseMouse(){
 	while(!usbInterruptIsReady()){
 	}
-	    memset(reportBuffer, 0, sizeof(reportBuffer));
+	
+    memset(reportBuffer, 0, sizeof(reportBuffer));
 		
 	reportBuffer[0] = 77;
 	reportBuffer[1] = 0;
-	reportBuffer[2] = 0; //X
-	reportBuffer[3] = 0; //Y
+	reportBuffer[2] = 0; //X-axis
+	reportBuffer[3] = 0; //Y-axis
 	
 	usbSetInterrupt(reportBuffer, sizeof(reportBuffer));
- }
+  }
 };
 
 UsbKeyboardDevice UsbKeyboard = UsbKeyboardDevice();
-
-
 
 #ifdef __cplusplus
 extern "C"{
@@ -343,6 +336,5 @@ uchar usbFunctionSetup(uchar data[8])
 #ifdef __cplusplus
 } // extern "C"
 #endif
-
 
 #endif // __UsbKeyboard_h__

@@ -405,5 +405,4 @@ section at the end of this file).
 #	define USB_INTR_VECTOR VUSB_INTR_VECTOR
 #endif
 
-
 #endif /* __usbconfig_h_included__ */

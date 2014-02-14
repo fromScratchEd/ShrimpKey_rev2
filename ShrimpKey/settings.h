@@ -12,7 +12,7 @@
 //#define SIM_KEYPRESS //uncomment when keypresses should be send simultaneous (max.6 at one time), comment when they should be send repeated (1 at a time)
 #ifdef SIM_KEYPRESS
   const int NUM_SIM = 6;  //define number of simultaneous keypresses (size of buffer in UsbKeyboard.h minus 2)
-                          //when changing this number, also changes all lines in ShrimpKey.ino with UsbKeyboard.sendKeyStroke()
+                          //when changing this number, also changes all lines with UsbKeyboard.sendKeyStroke() in ShrimpKey.ino
 #endif
 // Pin Numbers
 #define NUM_INPUTS       16     // how many pins are used, skipping pin 2, 7 and pin 13 (and 6)
