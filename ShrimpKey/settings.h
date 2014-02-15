@@ -4,42 +4,57 @@
 //  ShrimpKey settings  //////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////
 
-//#define EXTRA_LED  //uncomment if you want to use an extra LED on pin 12 (or any other pin)
+#define NUM_INPUTS       16         // how many pins are used as input; max = 17
+                                    // also skips the pins for outputPin and extraLed
+                                    
+int pinNumbers[NUM_INPUTS] = {      // Pin declarations: which pins will be used. ALWAYS skip pins 2, 7 and 13
+                                    // also skips the pins for outputPin and extraLed
+  0, 1, 3, 4, 5, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19
+};
+
+char keyCodes[NUM_INPUTS] = {    // Keymappings: which key maps to which pin on the ShrimpKey-board?
+  MOD_SHIFT_LEFT         // pin D0
+  , KEY_ARROW_DOWN     // pin D1
+  , KEY_ARROW_LEFT     // pin D3
+  , KEY_ARROW_RIGHT    // pin D4
+  , KEY_SPACE          // pin D5
+  , KEY_W              // pin D8
+  , KEY_A              // pin D9
+  , KEY_S              // pin D10
+  , KEY_D              // pin D11
+  , MOD_SHIFT_LEFT     // pin D12
+  , MOUSE_LEFT         // pin A0 = 14
+  , MOUSE_RIGHT        // pin A1 = 15
+  , MOUSE_MOVE_LEFT    // pin A2 = 16
+  , MOUSE_MOVE_RIGHT   // pin A3 = 17
+  , MOUSE_MOVE_UP      // pin A4 = 18
+  , MOUSE_MOVE_DOWN    // pin A5 = 19
+};
+
+
+/////////////////////////
+// EXTRA OPTIONS ////////
+/////////////////////////
+
+//#define EXTRA_LED    //uncomment if you want to use an extra LED on pin 12 (or any other pin)
+#define SIM_KEYPRESS //uncomment when keypresses should be send simultaneous (max.6 at one time), comment when they should be send repeated (1 at a time)
+#define OUTPUTPIN    //uncomment to use one or two pins as output
+
 #ifdef EXTRA_LED
-  int extraLedPIN 12;
+  const int extraLedPIN 12;  //pin for extra LED for ShrimpKey; DON'T use this pin in pinNumbers!! NOT WORKING ATM
 #endif
 
-//#define SIM_KEYPRESS //uncomment when keypresses should be send simultaneous (max.6 at one time), comment when they should be send repeated (1 at a time)
+#ifdef OUTPUTPIN
+  const int num_output = 1;   //how many outputs are used; can be 1 or 2
+                              //when using pin D6; remember to disconnect the attached device before uploading new sketch!!
+  const int outputPin1 = 6;   //pin for first output (when num_output = 2 => keyboard); DON'T use this pin in pinNumbers!!
+  const int outputPin2 = 5;   //pin for second output (when num_output = 2 => mouse); DON'T use this pin in pinNumbers!!
+#endif
+
 #ifdef SIM_KEYPRESS
   const int NUM_SIM = 6;  //define number of simultaneous keypresses (size of buffer in UsbKeyboard.h minus 2)
                           //when changing this number, also changes all lines with UsbKeyboard.sendKeyStroke() in ShrimpKey.ino
 #endif
-// Pin Numbers
-#define NUM_INPUTS       16     // how many pins are used, skipping pin 2, 7 and pin 13 (and 6)
-
-int pinNumbers[NUM_INPUTS] = {      // Pin declarations: which pins will be used?
-  0, 1, 3, 4, 5, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19
-};
-
-char keyCodes[NUM_INPUTS] = {      // Keymappings: which key maps to which pin on the ShrimpKey-board?
-  MOD_SHIFT_LEFT,              // pin D0
-  MOD_CONTROL_LEFT,              // pin D1
-  KEY_S,              // pin D3
-  KEY_D,              // pin D4
-  KEY_F,              // pin D5
-  KEY_G,              // pin D8
-  KEY_I,              // pin D9
-  KEY_J,              // pin D10
-  KEY_K,              // pin D11
-  KEY_L,              // pin D12
-  MOUSE_LEFT,         // pin A0 = 14
-  MOUSE_RIGHT,        // pin A1 = 15
-  MOUSE_MOVE_LEFT,    // pin A2 = 16
-  MOUSE_MOVE_RIGHT,   // pin A3 = 17
-  MOUSE_MOVE_UP,      // pin A4 = 18
-  MOUSE_MOVE_DOWN     // pin A5 = 19
-};
-
 
 /////////////////////////
 // MOUSE MOTION /////////
@@ -47,7 +62,7 @@ char keyCodes[NUM_INPUTS] = {      // Keymappings: which key maps to which pin o
 #define MOUSE_MOTION_UPDATE_INTERVAL  35   // how many loops to wait between 
                                            // sending mouse motion updates
                                            
-#define PIXELS_PER_MOUSE_STEP         4     // a larger number will make the mouse
+#define PIXELS_PER_MOUSE_STEP         4    // a larger number will make the mouse
                                            // move faster
 
 #define MOUSE_RAMP_SCALE              150  // Scaling factor for mouse movement ramping
@@ -56,7 +71,6 @@ char keyCodes[NUM_INPUTS] = {      // Keymappings: which key maps to which pin o
                                            // 0 = Ramping off
                                             
 #define MOUSE_MAX_PIXELS              10   // Max pixels per step for mouse movement
-
 
 
 ///////////////////////////

@@ -6,7 +6,7 @@
  ////////////////////////////////////////////////
  /////////////HOW TO EDIT THE KEYS //////////////
  ////////////////////////////////////////////////
- - Edit keys in the settings.h file
+ - Edit keys and options in the settings.h file
  - That file should be open in a tab above (in Arduino IDE)
  
  There is no need to edit anything below...
@@ -124,7 +124,7 @@ int loopCounter = 0;
 int pressedPins[NUM_INPUTS]; //to store which pins are pressed
 int reportBuf = 0;
 int lastReportBuf = 0;
-int keyReg[NUM_SIM]; //to store keys to send to UsbKeyboard.h
+char keyReg[NUM_SIM]; //to store keys to send to UsbKeyboard.h
 #endif
 
 ///////////////////////////
@@ -139,6 +139,9 @@ void updateInputStates();
 void sendMouseButtonEvents();
 void sendMouseMovementEvents();
 void addDelay();
+#ifdef OUTPUTPIN
+  void outputPins();
+#endif
 
 //////////////////////
 // SETUP /////////////
@@ -220,12 +223,19 @@ void initializeArduino() {
 #endif
 
   /* Set up input pins 
-   DEactivate the internal pull-ups, since we're using external resistors */
+  DEactivate the internal pull-ups, since we're using external resistors */
   for (int i=0; i<NUM_INPUTS; i++)
   {
     pinMode(pinNumbers[i], INPUT);
     digitalWrite(pinNumbers[i], LOW);
   }
+  
+  #ifdef OUTPUTPIN
+  pinMode(outputPin1, OUTPUT);
+  if (num_output == 2) {
+    pinMode(outputPin2, OUTPUT);
+  }
+  #endif
 
 #ifdef DEBUG
   delayMs(4000); // allow us time to reprogram in case things are freaking out
@@ -265,6 +275,7 @@ void initializeInputs() {
     inputs[i].isMouseMotion = false;
     inputs[i].isMouseButton = false;
     inputs[i].isKey = false;
+    inputs[i].isMod = false;
 
     if ((inputs[i].keyCode == MOD_CONTROL_LEFT) or
      (inputs[i].keyCode == MOD_SHIFT_LEFT) or
@@ -274,6 +285,7 @@ void initializeInputs() {
      (inputs[i].keyCode == MOD_SHIFT_RIGHT) or
      (inputs[i].keyCode == MOD_ALT_RIGHT) or
      (inputs[i].keyCode == MOD_GUI_RIGHT)) {
+//    if (inputs[i].keyCode > 500) {
       inputs[i].isMod = true;
     } else if (inputs[i].keyCode < -5) {
       inputs[i].isMouseButton = true;
@@ -284,6 +296,7 @@ void initializeInputs() {
     else {
       inputs[i].isKey = true;
     }
+    
 #ifdef DEBUG
     Serial.println(i);
 #endif
@@ -368,6 +381,9 @@ void updateInputStates() {
         if (inputs[i].isKey) {
           UsbKeyboard.releaseKeyStroke(); //input becomes released, release all keys
           keysPressed = 0;
+          #ifdef OUTPUTPIN
+          outputPins(0, 0); //turn off outputpin for keyboard
+          #endif
         }
     #endif
     #ifdef SIM_KEYPRESS
@@ -379,6 +395,9 @@ void updateInputStates() {
         if (inputs[i].isMouseMotion) {  
           mouseHoldCount[i] = 0;  // input becomes released, reset mouse hold
           UsbKeyboard.releaseMouse();
+          #ifdef OUTPUTPIN
+          outputPins(1, 0); //turn off outputpin for mouse
+          #endif
         }
         if (inputs[i].isMod) {
           modifier -= keyCodes[i]; //input becomes released, substract key from modifier
@@ -393,6 +412,9 @@ void updateInputStates() {
         keysPressed = 0;
         inputChanged = false;
         UsbKeyboard.releaseKeyStroke();
+        #ifdef OUTPUTPIN
+        outputPins(0, 0); //turn off outputpin for keyboard
+        #endif
       }
     #endif
     }
@@ -401,7 +423,7 @@ void updateInputStates() {
         inputChanged = true;
         inputs[i].pressed = true;
         if (inputs[i].isMod) {
-          modifier += keyCodes[i];
+          modifier += keyCodes[i]; //input is pressed, add key to modifier
         }
       #ifndef SIM_KEYPRESS
         if ((lastKeyPressed != i) && (inputs[i].isKey)) { //if this is a new (second, third) key pressed, send this key
@@ -409,10 +431,13 @@ void updateInputStates() {
           inputs[lastKeyPressed].pressed = false;
           UsbKeyboard.sendKeyStroke(keyCodes[i], 0, 0, 0, 0, 0, modifier);
           lastKeyPressed = i;
+          #ifdef OUTPUTPIN
+          outputPins(0, 1); //turn on outputpin for keyboard
+          #endif
         }
       #endif
       #ifdef SIM_KEYPRESS
-        if ((lastKeyPressed != 1) && (inputs[i].isKey) && (pressedPins[i] == 0)) {
+        if ((inputs[i].isKey) && (pressedPins[i] == 0)) {
           pressedPins[i] = 1;
           keysPressed += 1; 
         }
@@ -428,46 +453,55 @@ void updateInputStates() {
       if (inputs[i].pressed) {
         inputs[i].pressed = false;
         lastKeyPressed = -1;
+        #ifdef OUTPUTPIN
+        outputPins(0, 0); //turn off outputpin for keyboard
+        #endif
       }
     }
   #endif
   #ifdef SIM_KEYPRESS
     reportBuf = 0;
-    if (keysPressed >= (NUM_SIM + 1)) {
+    if (keysPressed >= NUM_SIM) {
       keysPressed = NUM_SIM;
     }
     if ((keysPressed > 0) && (lastReportBuf != keysPressed)) {
-      for (int i=0; i<NUM_SIM; i++) { //empty previous pressed keys
-        keyReg[i] = 0;
+      for (int j=0; j<NUM_SIM; j++) { //empty previous pressed keys
+        keyReg[j] = 0;
       }
-      for (int i=0; i<NUM_INPUTS; i++) {
-        if (pressedPins[i] == 1) {
-          if (reportBuf <= NUM_SIM) {
-            keyReg[reportBuf] = i;
+      for (int k=0; k<NUM_INPUTS; k++) {
+        if (pressedPins[k] == 1) {
+          if (reportBuf < NUM_SIM) {
+            keyReg[reportBuf] = keyCodes[k];
           } else {
-            pressedPins[i] = 0; // truncated extra pressed pins 
+            pressedPins[k] = 0; // truncated extra pressed pins 
           }
           reportBuf += 1;
-          if (reportBuf >= NUM_SIM) {
-            reportBuf = NUM_SIM;
-          }         
         }
       }
+      if (reportBuf > NUM_SIM) {
+        reportBuf = NUM_SIM;
+      }
       lastReportBuf = reportBuf;
-      UsbKeyboard.sendKeyStroke(keyCodes[keyReg[0]], keyCodes[keyReg[1]], keyCodes[keyReg[2]], keyCodes[keyReg[3]], keyCodes[keyReg[4]], keyCodes[keyReg[5]], modifier);
+      UsbKeyboard.sendKeyStroke(keyReg[0], keyReg[1], keyReg[2], keyReg[3], keyReg[4], keyReg[5], modifier);
+      #ifdef OUTPUTPIN
+      outputPins(0, 1); //turn on outputpin for keyboard
+      #endif
     }
-    if (!(lastModifier == modifier) && (lastReportBuf == keysPressed)) { //resend keys if modifier has been changed
-      UsbKeyboard.sendKeyStroke(keyCodes[keyReg[0]], keyCodes[keyReg[1]], keyCodes[keyReg[2]], keyCodes[keyReg[3]], keyCodes[keyReg[4]], keyCodes[keyReg[5]], modifier);
+    if (!(lastModifier == modifier) && (lastReportBuf == keysPressed)) { //resend keys if only modifier has been changed
+      UsbKeyboard.sendKeyStroke(keyReg[0], keyReg[1], keyReg[2], keyReg[3], keyReg[4], keyReg[5], modifier);
     }
     if ((lastReportBuf != reportBuf) && (keysPressed == 0)) {
       lastReportBuf = 0;
-      for (int i=0; i<NUM_SIM; i++) { //empty previous pressed keys
-        keyReg[i] = 0;
+      for (int l=0; l<NUM_SIM; l++) { //empty previous pressed keys
+        keyReg[l] = 0;
       }
-      for (int i=0; i<NUM_INPUTS; i++) { //clear registration of pressed keys
-        pressedPins[i] = 0;
+      for (int m=0; m<NUM_INPUTS; m++) { //clear registration of pressed keys
+        pressedPins[m] = 0;
       }
-      UsbKeyboard.releaseKeyStroke(); 
+      UsbKeyboard.releaseKeyStroke();
+      #ifdef OUTPUTPIN
+      outputPins(0, 0); //turn off outputpin for keyboard
+      #endif 
     }
   #endif
   }
@@ -488,17 +522,29 @@ void sendMouseButtonEvents() {
         if (inputs[i].pressed) {
           if (inputs[i].keyCode == -7) {
             UsbKeyboard.mouse(0, 0, 1);
+            #ifdef OUTPUTPIN
+            outputPins(1, 1); //turn on outputpin for mouse
+            #endif
           } 
           if (inputs[i].keyCode == -6) {
             UsbKeyboard.mouse(0, 0, 2);
+            #ifdef OUTPUTPIN
+            outputPins(1, 1); //turn on outputpin for mouse
+            #endif
           } 
         } 
         else if (inputs[i].prevPressed) {
           if (inputs[i].keyCode == -7) {
             UsbKeyboard.mouse(0, 0, 0);
+            #ifdef OUTPUTPIN
+            outputPins(1, 0); //turn off outputpin for mouse
+            #endif
           } 
           if (inputs[i].keyCode == -6) {
             UsbKeyboard.mouse(0, 0, 0);
+            #ifdef OUTPUTPIN
+            outputPins(1, 0); //turn off outputpin for mouse
+            #endif
           }           
         }
       }
@@ -588,6 +634,9 @@ void sendMouseMovementEvents() {
     if( !((horizmotion == 0) && (vertmotion==0)) )
     {
       UsbKeyboard.mouse(horizmotion * PIXELS_PER_MOUSE_STEP, vertmotion * PIXELS_PER_MOUSE_STEP, 0);
+      #ifdef OUTPUTPIN
+      outputPins(1, 1); //turn on outputpin for mouse
+      #endif
     }
   }
 }
@@ -615,5 +664,20 @@ void addDelay() {
 #endif
 }
 
-
-
+///////////////////////////
+// OUTPUT PIN(S)
+///////////////////////////
+void outputPins(int type, int state) {
+  #ifdef OUTPUTPIN
+  //type = 0 = keyboard, type = 1 = mouse
+  if (num_output == 2) {
+    if (type == 0) {
+      digitalWrite(outputPin1, state);
+    } else if (type == 1) {
+      digitalWrite(outputPin2, state);
+    }
+  } else {
+    digitalWrite(outputPin1, state);
+  } 
+  #endif
+}
