@@ -47,7 +47,7 @@ char keyCodes[NUM_INPUTS] = {    // Keymappings: which key maps to which pin on 
 /////////////////////////
 
 //#define EXTRA_LED    //uncomment if you want to use an extra LED on pin 12 (or any other pin)
-//#define SIM_KEYPRESS //uncomment when keypresses should be send simultaneous (max.6 at one time), comment when they should be send repeated (1 at a time)
+#define SIM_KEYPRESS //uncomment when keypresses should be send simultaneous (max.6 at one time), comment when they should be send repeated (1 at a time)
 #define OUTPUTPIN    //uncomment to use one or two pins as output
 
 #ifdef EXTRA_LED
