@@ -1,0 +1,17 @@
+##########ShrimpUSB = tinyUSBboard (Rev.3 and future)###(magic=0xfe9a5680)###########
+newtinyUSBboard.name=ShrimpUSB (USBaspLoader ATmega328p at 16MHz, Rev.1 and newer)
+newtinyUSBboard.upload.protocol=usbasp
+newtinyUSBboard.upload.maximum_size=28672
+newtinyUSBboard.upload.speed=115200
+newtinyUSBboard.upload.disable_flushing=true
+newtinyUSBboard.bootloader.low_fuses=0xD7
+newtinyUSBboard.bootloader.high_fuses=0xD0
+newtinyUSBboard.bootloader.extended_fuses=0x04
+newtinyUSBboard.bootloader.path=ShrimpUSB
+newtinyUSBboard.bootloader.file=ShrimpUSB_rev2_atmega328p_16MHz.hex
+newtinyUSBboard.bootloader.unlock_bits=0x3F
+newtinyUSBboard.bootloader.lock_bits=0x3F
+newtinyUSBboard.build.mcu=atmega328p
+newtinyUSBboard.build.f_cpu=16000000L
+newtinyUSBboard.build.core=arduino:arduino
+newtinyUSBboard.build.variant=ShrimpUSB

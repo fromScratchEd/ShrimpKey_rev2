@@ -21,6 +21,7 @@ int modPinNumbers[NUM_MODS] = {     // When using modifiers, ALSO declare those 
 
 char keyCodes[NUM_INPUTS] = {    // Keymappings: which key maps to which pin on the ShrimpKey-board?
                                  // Change the keys here. When using lesser pins, comment or delete lines
+                                 // See UsbKeyboard.h for possible values
                                  // The number of lines should be the same as the value of NUM_INPUTS
   KEY_ARROW_UP         // pin D0
   , KEY_ARROW_DOWN     // pin D1
