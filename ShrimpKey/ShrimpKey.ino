@@ -19,7 +19,7 @@
  
  With contributions from and with many thanks to
    Cefn Hoile, shrimping.it@cefn.com
-   (for his ideas/improvements and fixes)
+   (for his ideas, improvements and fixes)
  and
    Stephan Baerwolf, stephan@matrixstorm.com
    (for his support on adding USBaspLoader-support)
@@ -259,6 +259,15 @@ void initializeInputs() {
   Serial.println(releaseThreshold);
 #endif
 
+  for (int k=0; k<NUM_MODS; k++) {
+    for (int i=0; i<NUM_INPUTS; i++) {
+      inputs[i].isMod = false;
+      if (pinNumbers[i] == modPinNumbers[k]) {
+        inputs[i].isMod = true;
+      }
+    }
+  }
+
   for (int i=0; i<NUM_INPUTS; i++) {
     inputs[i].pinNumber = pinNumbers[i];
     inputs[i].keyCode = keyCodes[i];
@@ -275,26 +284,17 @@ void initializeInputs() {
     inputs[i].isMouseMotion = false;
     inputs[i].isMouseButton = false;
     inputs[i].isKey = false;
-    inputs[i].isMod = false;
 
-    if ((inputs[i].keyCode == MOD_CONTROL_LEFT) or
-     (inputs[i].keyCode == MOD_SHIFT_LEFT) or
-     (inputs[i].keyCode == MOD_ALT_LEFT) or
-     (inputs[i].keyCode == MOD_GUI_LEFT) or
-     (inputs[i].keyCode == MOD_CONTROL_RIGHT) or
-     (inputs[i].keyCode == MOD_SHIFT_RIGHT) or
-     (inputs[i].keyCode == MOD_ALT_RIGHT) or
-     (inputs[i].keyCode == MOD_GUI_RIGHT)) {
-//    if (inputs[i].keyCode > 500) {
-      inputs[i].isMod = true;
-    } else if (inputs[i].keyCode < -5) {
+    if (inputs[i].keyCode < -5) {
       inputs[i].isMouseButton = true;
     } 
     else if (inputs[i].keyCode < 0) {
       inputs[i].isMouseMotion = true;
     } 
     else {
-      inputs[i].isKey = true;
+      if (!inputs[i].isMod) {
+        inputs[i].isKey = true;
+      }
     }
     
 #ifdef DEBUG

@@ -4,20 +4,30 @@
 //  ShrimpKey settings  //////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////
 
-#define NUM_INPUTS       16         // how many pins are used as input; max = 17
-                                    // also skips the pins for outputPin and extraLed
+#define NUM_INPUTS       16         // How many pins are used as input; max = 17
+                                    // Skip the pins for outputPin and extraLed, but include modifiers
                                     
-int pinNumbers[NUM_INPUTS] = {      // Pin declarations: which pins will be used. ALWAYS skip pins 2, 7 and 13
-                                    // also skips the pins for outputPin and extraLed
+int pinNumbers[NUM_INPUTS] = {      // Pin declarations: which pins are used. ALWAYS skip pins 2, 7 and 13
+                                    // Skip the pins for outputPin and extraLed, but include modifiers
+                                    // Available pins: 0, 1, 3, 4, 5, 6, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19
   0, 1, 3, 4, 5, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19
 };
 
+#define NUM_MODS          1         // How many pins (of NUM_INPUTS) are used as modifier (Shift, Ctrl, Alt, etc.)
+
+int modPinNumbers[NUM_MODS] = {     // When using modifiers, ALSO declare those pins here (separated by commas)
+  12
+};
+
 char keyCodes[NUM_INPUTS] = {    // Keymappings: which key maps to which pin on the ShrimpKey-board?
+                                 // Change the keys here. When using lesser pins, comment or delete lines
+                                 // The number of lines should be the same as the value of NUM_INPUTS
   KEY_ARROW_UP         // pin D0
   , KEY_ARROW_DOWN     // pin D1
   , KEY_ARROW_LEFT     // pin D3
   , KEY_ARROW_RIGHT    // pin D4
   , KEY_SPACE          // pin D5
+  //, KEY_ENTER          // pin D6
   , KEY_W              // pin D8
   , KEY_A              // pin D9
   , KEY_S              // pin D10
@@ -37,7 +47,7 @@ char keyCodes[NUM_INPUTS] = {    // Keymappings: which key maps to which pin on 
 /////////////////////////
 
 //#define EXTRA_LED    //uncomment if you want to use an extra LED on pin 12 (or any other pin)
-#define SIM_KEYPRESS //uncomment when keypresses should be send simultaneous (max.6 at one time), comment when they should be send repeated (1 at a time)
+//#define SIM_KEYPRESS //uncomment when keypresses should be send simultaneous (max.6 at one time), comment when they should be send repeated (1 at a time)
 #define OUTPUTPIN    //uncomment to use one or two pins as output
 
 #ifdef EXTRA_LED
