@@ -15,3 +15,20 @@ ShrimpUSBboard.build.mcu=atmega328p
 ShrimpUSBboard.build.f_cpu=16000000L
 ShrimpUSBboard.build.core=arduino:arduino
 ShrimpUSBboard.build.variant=ShrimpUSB
+
+###############ShrimpUSB8 = tinyUSBboard (Rev.3 and future)###(magic=0xfe9a5680)###########
+ShrimpUSBboard8.name=ShrimpUSB (USBaspLoader ATmega8 at 16MHz, Rev.1 and newer)
+ShrimpUSBboard8.upload.protocol=usbasp
+ShrimpUSBboard8.upload.maximum_size=6144
+ShrimpUSBboard8.upload.speed=115200
+ShrimpUSBboard8.upload.disable_flushing=true
+ShrimpUSBboard8.bootloader.low_fuses=0x1F
+ShrimpUSBboard8.bootloader.high_fuses=0xC0
+ShrimpUSBboard8.bootloader.path=ShrimpUSB
+ShrimpUSBboard8.bootloader.file=ShrimpUSB_rev2_atmega8_16MHz.hex
+ShrimpUSBboard8.bootloader.unlock_bits=0x3F
+ShrimpUSBboard8.bootloader.lock_bits=0x3F
+ShrimpUSBboard8.build.mcu=atmega8
+ShrimpUSBboard8.build.f_cpu=16000000L
+ShrimpUSBboard8.build.core=arduino:arduino
+ShrimpUSBboard8.build.variant=ShrimpUSB

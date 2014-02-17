@@ -21,3 +21,7 @@ or
 avrdude -c usbasp -p atmega8 -u -U flash:w:rev3_usbaspprogrammer_atmega8.hex
 
 After uploading press the reset button of the Shrimp to start it in programmer mode.
+
+Source
+-----------
+http://matrixstorm.com/avr/tinyusbboard/#firmwares
