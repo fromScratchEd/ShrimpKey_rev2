@@ -23,23 +23,23 @@ char keyCodes[NUM_INPUTS] = {    // Keymappings: which key maps to which pin on 
                                  // Change the keys here. When using lesser pins, comment or delete lines
                                  // See UsbKeyboard.h for possible values
                                  // The number of lines should be the same as the value of NUM_INPUTS
-  KEY_ARROW_UP         // pin D0
-  , KEY_ARROW_DOWN     // pin D1
-  , KEY_ARROW_LEFT     // pin D3
-  , KEY_ARROW_RIGHT    // pin D4
-  , KEY_SPACE          // pin D5
-  //, KEY_ENTER          // pin D6
-  , KEY_W              // pin D8
-  , KEY_A              // pin D9
-  , KEY_S              // pin D10
-  , KEY_D              // pin D11
-  , MOD_SHIFT_LEFT     // pin D12
-  , MOUSE_LEFT         // pin A0 = 14
-  , MOUSE_RIGHT        // pin A1 = 15
-  , MOUSE_MOVE_LEFT    // pin A2 = 16
-  , MOUSE_MOVE_RIGHT   // pin A3 = 17
-  , MOUSE_MOVE_UP      // pin A4 = 18
-  , MOUSE_MOVE_DOWN    // pin A5 = 19
+  KEY_A                   // pin D0
+  , KEY_S                 // pin D1
+  , KEY_D                 // pin D3
+  , KEY_W                 // pin D4
+  , KEY_ARROW_LEFT        // pin D5
+  //, KEY_ENTER           // pin D6
+  , KEY_ARROW_UP          // pin D8
+  , MOUSE_LEFT            // pin D9
+  , KEY_SPACE             // pin D10
+  , KEY_ARROW_DOWN        // pin D11
+  , KEY_ARROW_RIGHT       // pin D12
+  , MOUSE_RIGHT           // pin A0 = 14
+  , MOUSE_MOVE_UP         // pin A1 = 15
+  , MOUSE_MOVE_DOWN       // pin A2 = 16
+  , MOUSE_MOVE_LEFT       // pin A3 = 17
+  , MOUSE_MOVE_RIGHT      // pin A4 = 18
+  , MOD_SHIFT_LEFT        // pin A5 = 19
 };
 
 
