@@ -16,7 +16,7 @@ int pinNumbers[NUM_INPUTS] = {      // Pin declarations: which pins are used. AL
 #define NUM_MODS          1         // How many pins (of NUM_INPUTS) are used as modifier (Shift, Ctrl, Alt, etc.)
 
 int modPinNumbers[NUM_MODS] = {     // When using modifiers, ALSO declare those pins here (separated by commas)
-  12
+  19
 };
 
 char keyCodes[NUM_INPUTS] = {    // Keymappings: which key maps to which pin on the ShrimpKey-board?

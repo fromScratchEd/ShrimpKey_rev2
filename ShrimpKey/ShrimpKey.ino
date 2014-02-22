@@ -111,6 +111,8 @@ int lastKeyPressed = -1;
 int keysPressed = 0;
 boolean keyPressed = 0;
 int mouseHoldCount[NUM_INPUTS]; // used to store mouse movement hold data
+int mouseHoldTotal = 0;
+int prevMouseHoldTotal = 0;
 const int ledPin = 13;
 int modifier = 0;
 int lastModifier = 0;
@@ -394,10 +396,6 @@ void updateInputStates() {
     #endif
         if (inputs[i].isMouseMotion) {  
           mouseHoldCount[i] = 0;  // input becomes released, reset mouse hold
-          UsbKeyboard.releaseMouse();
-          #ifdef OUTPUTPIN
-          outputPins(1, 0); //turn off outputpin for mouse
-          #endif
         }
         if (inputs[i].isMod) {
           modifier -= keyCodes[i]; //input becomes released, substract key from modifier
@@ -567,11 +565,15 @@ void sendMouseMovementEvents() {
   mouseMovementCounter %= MOUSE_MOTION_UPDATE_INTERVAL;
   if (mouseMovementCounter == 0) {
    
+    prevMouseHoldTotal = mouseHoldTotal;
+    mouseHoldTotal = 0;
+    
     for (int i=0; i<NUM_INPUTS; i++) {
 #ifdef DEBUG_MOUSE
       Serial.println(inputs[i].isMouseMotion);  
 #endif
-
+      mouseHoldTotal += mouseHoldCount[i];
+      
       if (inputs[i].isMouseMotion) {
         if (inputs[i].pressed) {
           if (inputs[i].keyCode == MOUSE_MOVE_UP) {
@@ -636,6 +638,13 @@ void sendMouseMovementEvents() {
       UsbKeyboard.mouse(horizmotion * PIXELS_PER_MOUSE_STEP, vertmotion * PIXELS_PER_MOUSE_STEP, 0);
       #ifdef OUTPUTPIN
       outputPins(1, 1); //turn on outputpin for mouse
+      #endif
+    }
+    
+    if ((mouseHoldTotal == 0) && !(prevMouseHoldTotal == 0)) {
+      UsbKeyboard.releaseMouse();
+      #ifdef OUTPUTPIN
+      outputPins(1, 0); //turn off outputpin for mouse
       #endif
     }
   }
