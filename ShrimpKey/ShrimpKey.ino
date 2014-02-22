@@ -641,6 +641,7 @@ void sendMouseMovementEvents() {
       #endif
     }
     
+    // release mouse
     if ((mouseHoldTotal == 0) && !(prevMouseHoldTotal == 0)) {
       UsbKeyboard.releaseMouse();
       #ifdef OUTPUTPIN
